@@ -49,15 +49,7 @@ jobs:
           cp demo.svg dist/
 
       - name: Configure GitHub Pages
-        if: ${{ secrets.PAGES_DEPLOY_TOKEN == '' }}
         uses: actions/configure-pages@v5
-
-      - name: Enable and configure GitHub Pages
-        if: ${{ secrets.PAGES_DEPLOY_TOKEN != '' }}
-        uses: actions/configure-pages@v5
-        with:
-          token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
-          enablement: true
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4
