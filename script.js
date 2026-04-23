@@ -77,7 +77,7 @@ function fitStageToViewport() {
   }
 
   const bounds = viewport.getBoundingClientRect();
-  const maxWidth = Math.max(280, bounds.width - 40);
+  const maxWidth = Math.max(bounds.width - 40, Math.min(MIN_CROP_SIZE, bounds.width));
   const maxHeight = Math.max(260, window.innerHeight * 0.62);
   const imageRatio = state.naturalWidth / state.naturalHeight;
 
@@ -231,29 +231,52 @@ function renderCrop() {
   ratioMeta.textContent = getRatioLabel();
 }
 
-function renderResult() {
+function getSourceRect() {
   if (!state.crop || !state.imageLoaded) {
+    return null;
+  }
+
+  const left = (state.crop.x / state.stageWidth) * state.naturalWidth;
+  const top = (state.crop.y / state.stageHeight) * state.naturalHeight;
+  const right = ((state.crop.x + state.crop.width) / state.stageWidth) * state.naturalWidth;
+  const bottom = ((state.crop.y + state.crop.height) / state.stageHeight) * state.naturalHeight;
+  const x = clamp(Math.floor(left), 0, state.naturalWidth - 1);
+  const y = clamp(Math.floor(top), 0, state.naturalHeight - 1);
+  const clampedRight = clamp(Math.ceil(right), x + 1, state.naturalWidth);
+  const clampedBottom = clamp(Math.ceil(bottom), y + 1, state.naturalHeight);
+
+  return {
+    x,
+    y,
+    width: clampedRight - x,
+    height: clampedBottom - y,
+  };
+}
+
+function renderResult() {
+  const sourceRect = getSourceRect();
+  if (!sourceRect) {
     return;
   }
 
-  const sourceX = Math.round((state.crop.x / state.stageWidth) * state.naturalWidth);
-  const sourceY = Math.round((state.crop.y / state.stageHeight) * state.naturalHeight);
-  const sourceWidth = Math.round((state.crop.width / state.stageWidth) * state.naturalWidth);
-  const sourceHeight = Math.round((state.crop.height / state.stageHeight) * state.naturalHeight);
   const previewLimit = 420;
-  const previewScale = Math.min(previewLimit / sourceWidth, previewLimit / sourceHeight, 1);
+  const previewScale = Math.min(
+    previewLimit / sourceRect.width,
+    previewLimit / sourceRect.height,
+    1
+  );
 
-  resultCanvas.width = Math.max(1, Math.round(sourceWidth * previewScale));
-  resultCanvas.height = Math.max(1, Math.round(sourceHeight * previewScale));
+  resultCanvas.width = Math.max(1, Math.round(sourceRect.width * previewScale));
+  resultCanvas.height = Math.max(1, Math.round(sourceRect.height * previewScale));
 
   const context = resultCanvas.getContext("2d");
   context.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
   context.drawImage(
     imagePreview,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
+    sourceRect.x,
+    sourceRect.y,
+    sourceRect.width,
+    sourceRect.height,
     0,
     0,
     resultCanvas.width,
@@ -262,26 +285,23 @@ function renderResult() {
 }
 
 function buildExportCanvas() {
+  const sourceRect = getSourceRect();
   const canvas = document.createElement("canvas");
-  const sourceX = Math.round((state.crop.x / state.stageWidth) * state.naturalWidth);
-  const sourceY = Math.round((state.crop.y / state.stageHeight) * state.naturalHeight);
-  const sourceWidth = Math.round((state.crop.width / state.stageWidth) * state.naturalWidth);
-  const sourceHeight = Math.round((state.crop.height / state.stageHeight) * state.naturalHeight);
   const context = canvas.getContext("2d");
 
-  canvas.width = sourceWidth;
-  canvas.height = sourceHeight;
+  canvas.width = sourceRect.width;
+  canvas.height = sourceRect.height;
 
   context.drawImage(
     imagePreview,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
+    sourceRect.x,
+    sourceRect.y,
+    sourceRect.width,
+    sourceRect.height,
     0,
     0,
-    sourceWidth,
-    sourceHeight
+    sourceRect.width,
+    sourceRect.height
   );
 
   return canvas;
