@@ -4,7 +4,6 @@ const customRatioFields = document.querySelector("#customRatioFields");
 const customWidthInput = document.querySelector("#customWidth");
 const customHeightInput = document.querySelector("#customHeight");
 const exportFormat = document.querySelector("#exportFormat");
-const ratioButtons = [...document.querySelectorAll(".ratio-chip")];
 const loadDemoBtn = document.querySelector("#loadDemo");
 const resetCropBtn = document.querySelector("#resetCrop");
 const centerCropBtn = document.querySelector("#centerCrop");
@@ -15,19 +14,11 @@ const stage = document.querySelector("#stage");
 const imagePreview = document.querySelector("#imagePreview");
 const cropBox = document.querySelector("#cropBox");
 const resultCanvas = document.querySelector("#resultCanvas");
-const resultContext = resultCanvas.getContext("2d");
 const imageMeta = document.querySelector("#imageMeta");
 const cropMeta = document.querySelector("#cropMeta");
 const ratioMeta = document.querySelector("#ratioMeta");
-const shadeTop = document.querySelector(".crop-shade-top");
-const shadeRight = document.querySelector(".crop-shade-right");
-const shadeBottom = document.querySelector(".crop-shade-bottom");
-const shadeLeft = document.querySelector(".crop-shade-left");
 
 const MIN_CROP_SIZE = 48;
-const PREVIEW_MAX_SIZE = 420;
-const DRAG_PREVIEW_INTERVAL = 90;
-
 const state = {
   imageLoaded: false,
   naturalWidth: 0,
@@ -37,13 +28,6 @@ const state = {
   crop: null,
   drag: null,
   dropDepth: 0,
-  activeLoadToken: 0,
-  cropRenderId: 0,
-  previewRenderId: 0,
-  previewThrottleId: 0,
-  lastPreviewAt: 0,
-  previewWidth: 0,
-  previewHeight: 0,
 };
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -84,68 +68,6 @@ function syncRatioUi() {
   const isCustom = ratioPreset.value === "custom";
   customRatioFields.hidden = !isCustom;
   ratioMeta.textContent = getRatioLabel();
-  ratioButtons.forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.ratioValue === ratioPreset.value);
-  });
-}
-
-function cancelPreviewThrottle() {
-  if (!state.previewThrottleId) {
-    return;
-  }
-
-  window.clearTimeout(state.previewThrottleId);
-  state.previewThrottleId = 0;
-}
-
-function queueCropRender() {
-  if (state.cropRenderId) {
-    return;
-  }
-
-  state.cropRenderId = window.requestAnimationFrame(() => {
-    state.cropRenderId = 0;
-    renderCrop();
-  });
-}
-
-function queuePreviewFrame() {
-  if (state.previewRenderId) {
-    return;
-  }
-
-  state.previewRenderId = window.requestAnimationFrame(() => {
-    state.previewRenderId = 0;
-    renderResult();
-    state.lastPreviewAt = performance.now();
-  });
-}
-
-function queuePreviewRender(mode = "immediate") {
-  if (!state.imageLoaded || !state.crop) {
-    return;
-  }
-
-  if (mode === "immediate") {
-    cancelPreviewThrottle();
-    queuePreviewFrame();
-    return;
-  }
-
-  const elapsed = performance.now() - state.lastPreviewAt;
-  if (elapsed >= DRAG_PREVIEW_INTERVAL) {
-    queuePreviewFrame();
-    return;
-  }
-
-  if (state.previewThrottleId) {
-    return;
-  }
-
-  state.previewThrottleId = window.setTimeout(() => {
-    state.previewThrottleId = 0;
-    queuePreviewFrame();
-  }, Math.max(DRAG_PREVIEW_INTERVAL - elapsed, 16));
 }
 
 function fitStageToViewport() {
@@ -154,7 +76,7 @@ function fitStageToViewport() {
   }
 
   const bounds = viewport.getBoundingClientRect();
-  const maxWidth = Math.max(bounds.width - 40, Math.min(MIN_CROP_SIZE, bounds.width));
+  const maxWidth = Math.max(280, bounds.width - 40);
   const maxHeight = Math.max(260, window.innerHeight * 0.62);
   const imageRatio = state.naturalWidth / state.naturalHeight;
 
@@ -185,8 +107,8 @@ function fitStageToViewport() {
       height: state.crop.height * scaleY,
     };
     ensureCropInBounds();
-    queueCropRender();
-    queuePreviewRender("immediate");
+    renderCrop();
+    renderResult();
   }
 }
 
@@ -247,160 +169,19 @@ function ensureCropInBounds() {
   state.crop = { x, y, width, height };
 }
 
-function setOverlayRect(element, x, y, width, height) {
-  element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-  element.style.width = `${Math.max(0, width)}px`;
-  element.style.height = `${Math.max(0, height)}px`;
-}
-
-function renderCrop() {
-  if (!state.crop) {
-    return;
-  }
-
-  const renderX = Math.round(state.crop.x);
-  const renderY = Math.round(state.crop.y);
-  const renderWidth = Math.round(state.crop.width);
-  const renderHeight = Math.round(state.crop.height);
-
-  cropBox.style.transform = `translate3d(${renderX}px, ${renderY}px, 0)`;
-  cropBox.style.width = `${renderWidth}px`;
-  cropBox.style.height = `${renderHeight}px`;
-
-  setOverlayRect(shadeTop, 0, 0, state.stageWidth, renderY);
-  setOverlayRect(
-    shadeRight,
-    renderX + renderWidth,
-    renderY,
-    state.stageWidth - (renderX + renderWidth),
-    renderHeight
-  );
-  setOverlayRect(
-    shadeBottom,
-    0,
-    renderY + renderHeight,
-    state.stageWidth,
-    state.stageHeight - (renderY + renderHeight)
-  );
-  setOverlayRect(shadeLeft, 0, renderY, renderX, renderHeight);
-
-  const scaleX = state.naturalWidth / state.stageWidth;
-  const scaleY = state.naturalHeight / state.stageHeight;
-  const width = Math.round(state.crop.width * scaleX);
-  const height = Math.round(state.crop.height * scaleY);
-
-  cropMeta.textContent = `${width} × ${height}px`;
-  ratioMeta.textContent = getRatioLabel();
-}
-
-function getSourceRect() {
-  if (!state.crop || !state.imageLoaded) {
-    return null;
-  }
-
-  const left = (state.crop.x / state.stageWidth) * state.naturalWidth;
-  const top = (state.crop.y / state.stageHeight) * state.naturalHeight;
-  const right = ((state.crop.x + state.crop.width) / state.stageWidth) * state.naturalWidth;
-  const bottom = ((state.crop.y + state.crop.height) / state.stageHeight) * state.naturalHeight;
-  const x = clamp(Math.floor(left), 0, state.naturalWidth - 1);
-  const y = clamp(Math.floor(top), 0, state.naturalHeight - 1);
-  const clampedRight = clamp(Math.ceil(right), x + 1, state.naturalWidth);
-  const clampedBottom = clamp(Math.ceil(bottom), y + 1, state.naturalHeight);
-
-  return {
-    x,
-    y,
-    width: clampedRight - x,
-    height: clampedBottom - y,
-  };
-}
-
-function getPreviewCanvasSize(sourceWidth, sourceHeight) {
-  const scale = Math.min(PREVIEW_MAX_SIZE / sourceWidth, PREVIEW_MAX_SIZE / sourceHeight, 1);
-
-  return {
-    width: Math.max(1, Math.round(sourceWidth * scale)),
-    height: Math.max(1, Math.round(sourceHeight * scale)),
-  };
-}
-
-function renderResult() {
-  const sourceRect = getSourceRect();
-  if (!sourceRect) {
-    return;
-  }
-
-  const previewSize = getPreviewCanvasSize(sourceRect.width, sourceRect.height);
-  if (previewSize.width !== state.previewWidth || previewSize.height !== state.previewHeight) {
-    state.previewWidth = previewSize.width;
-    state.previewHeight = previewSize.height;
-    resultCanvas.width = previewSize.width;
-    resultCanvas.height = previewSize.height;
-  }
-
-  resultContext.clearRect(0, 0, state.previewWidth, state.previewHeight);
-  resultContext.imageSmoothingEnabled = true;
-  resultContext.imageSmoothingQuality = state.drag ? "medium" : "high";
-  resultContext.drawImage(
-    imagePreview,
-    sourceRect.x,
-    sourceRect.y,
-    sourceRect.width,
-    sourceRect.height,
-    0,
-    0,
-    state.previewWidth,
-    state.previewHeight
-  );
-}
-
-function buildExportCanvas() {
-  const sourceRect = getSourceRect();
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-
-  canvas.width = sourceRect.width;
-  canvas.height = sourceRect.height;
-
-  context.drawImage(
-    imagePreview,
-    sourceRect.x,
-    sourceRect.y,
-    sourceRect.width,
-    sourceRect.height,
-    0,
-    0,
-    sourceRect.width,
-    sourceRect.height
-  );
-
-  return canvas;
-}
-
-function getStagePoint(clientX, clientY) {
-  const rect = stage.getBoundingClientRect();
-  return {
-    x: clamp(clientX - rect.left, 0, rect.width),
-    y: clamp(clientY - rect.top, 0, rect.height),
-  };
-}
-
-function setCrop(nextCrop, { previewMode = "immediate" } = {}) {
-  state.crop = nextCrop;
-  ensureCropInBounds();
-  queueCropRender();
-  queuePreviewRender(previewMode);
-}
-
 function applyRatioToCurrentCrop() {
   if (!state.crop) {
-    setCrop(createCenteredCrop());
+    state.crop = createCenteredCrop();
+    renderCrop();
+    renderResult();
     return;
   }
 
   const ratio = getActiveRatio();
   if (!ratio) {
-    setCrop({ ...state.crop });
+    ensureCropInBounds();
+    renderCrop();
+    renderResult();
     return;
   }
 
@@ -419,12 +200,105 @@ function applyRatioToCurrentCrop() {
   width = clamp(width, MIN_CROP_SIZE, state.stageWidth);
   height = clamp(height, MIN_CROP_SIZE, state.stageHeight);
 
-  setCrop({
+  state.crop = {
     x: clamp(centerX - width / 2, 0, state.stageWidth - width),
     y: clamp(centerY - height / 2, 0, state.stageHeight - height),
     width,
     height,
-  });
+  };
+
+  renderCrop();
+  renderResult();
+}
+
+function renderCrop() {
+  if (!state.crop) {
+    return;
+  }
+
+  cropBox.style.left = `${state.crop.x}px`;
+  cropBox.style.top = `${state.crop.y}px`;
+  cropBox.style.width = `${state.crop.width}px`;
+  cropBox.style.height = `${state.crop.height}px`;
+
+  const scaleX = state.naturalWidth / state.stageWidth;
+  const scaleY = state.naturalHeight / state.stageHeight;
+  const width = Math.round(state.crop.width * scaleX);
+  const height = Math.round(state.crop.height * scaleY);
+
+  cropMeta.textContent = `${width} × ${height}px`;
+  ratioMeta.textContent = getRatioLabel();
+}
+
+function renderResult() {
+  if (!state.crop || !state.imageLoaded) {
+    return;
+  }
+
+  const sourceX = Math.round((state.crop.x / state.stageWidth) * state.naturalWidth);
+  const sourceY = Math.round((state.crop.y / state.stageHeight) * state.naturalHeight);
+  const sourceWidth = Math.round((state.crop.width / state.stageWidth) * state.naturalWidth);
+  const sourceHeight = Math.round((state.crop.height / state.stageHeight) * state.naturalHeight);
+  const previewLimit = 420;
+  const previewScale = Math.min(previewLimit / sourceWidth, previewLimit / sourceHeight, 1);
+
+  resultCanvas.width = Math.max(1, Math.round(sourceWidth * previewScale));
+  resultCanvas.height = Math.max(1, Math.round(sourceHeight * previewScale));
+
+  const context = resultCanvas.getContext("2d");
+  context.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+  context.drawImage(
+    imagePreview,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    resultCanvas.width,
+    resultCanvas.height
+  );
+}
+
+function buildExportCanvas() {
+  const canvas = document.createElement("canvas");
+  const sourceX = Math.round((state.crop.x / state.stageWidth) * state.naturalWidth);
+  const sourceY = Math.round((state.crop.y / state.stageHeight) * state.naturalHeight);
+  const sourceWidth = Math.round((state.crop.width / state.stageWidth) * state.naturalWidth);
+  const sourceHeight = Math.round((state.crop.height / state.stageHeight) * state.naturalHeight);
+  const context = canvas.getContext("2d");
+
+  canvas.width = sourceWidth;
+  canvas.height = sourceHeight;
+
+  context.drawImage(
+    imagePreview,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    0,
+    0,
+    sourceWidth,
+    sourceHeight
+  );
+
+  return canvas;
+}
+
+function getStagePoint(clientX, clientY) {
+  const rect = stage.getBoundingClientRect();
+  return {
+    x: clamp(clientX - rect.left, 0, rect.width),
+    y: clamp(clientY - rect.top, 0, rect.height),
+  };
+}
+
+function setCrop(nextCrop) {
+  state.crop = nextCrop;
+  ensureCropInBounds();
+  renderCrop();
+  renderResult();
 }
 
 function centerCurrentCrop() {
@@ -445,8 +319,7 @@ function moveCrop(clientX, clientY) {
   const offsetY = state.drag.offsetY;
   const x = clamp(point.x - offsetX, 0, state.stageWidth - state.crop.width);
   const y = clamp(point.y - offsetY, 0, state.stageHeight - state.crop.height);
-
-  setCrop({ ...state.crop, x, y }, { previewMode: "throttled" });
+  setCrop({ ...state.crop, x, y });
 }
 
 function resizeFreeform(handle, clientX, clientY) {
@@ -473,15 +346,12 @@ function resizeFreeform(handle, clientX, clientY) {
     bottom = clamp(point.y, top + MIN_CROP_SIZE, state.stageHeight);
   }
 
-  setCrop(
-    {
-      x: left,
-      y: top,
-      width: right - left,
-      height: bottom - top,
-    },
-    { previewMode: "throttled" }
-  );
+  setCrop({
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+  });
 }
 
 function resizeLockedRatio(handle, clientX, clientY) {
@@ -524,21 +394,18 @@ function resizeLockedRatio(handle, clientX, clientY) {
   const rawWidth = Math.abs(point.x - anchorX);
   const rawHeight = Math.abs(point.y - anchorY);
   const desiredWidth = Math.max(MIN_CROP_SIZE, Math.min(rawWidth, rawHeight * ratio));
-  const maxWidthByBounds = horizontal < 0 ? anchorX : state.stageWidth - anchorX;
-  const maxHeightByBounds = vertical < 0 ? anchorY : state.stageHeight - anchorY;
+  const maxWidthByBounds =
+    horizontal < 0 ? anchorX : state.stageWidth - anchorX;
+  const maxHeightByBounds =
+    vertical < 0 ? anchorY : state.stageHeight - anchorY;
   const maxWidth = Math.min(maxWidthByBounds, maxHeightByBounds * ratio);
   const width = clamp(desiredWidth, MIN_CROP_SIZE, maxWidth);
   const height = width / ratio;
 
-  setCrop(
-    {
-      x: horizontal < 0 ? anchorX - width : anchorX,
-      y: vertical < 0 ? anchorY - height : anchorY,
-      width,
-      height,
-    },
-    { previewMode: "throttled" }
-  );
+  const x = horizontal < 0 ? anchorX - width : anchorX;
+  const y = vertical < 0 ? anchorY - height : anchorY;
+
+  setCrop({ x, y, width, height });
 }
 
 function beginDrag(event) {
@@ -592,36 +459,23 @@ function finishDrag(event) {
     return;
   }
 
-  if (event?.pointerId !== undefined && cropBox.hasPointerCapture(event.pointerId)) {
+  if (cropBox.hasPointerCapture(event.pointerId)) {
     cropBox.releasePointerCapture(event.pointerId);
   }
 
   state.drag = null;
-  queueCropRender();
-  queuePreviewRender("immediate");
 }
 
 function initializeCrop() {
-  setCrop(createCenteredCrop());
+  state.crop = createCenteredCrop();
+  renderCrop();
+  renderResult();
 }
 
-function createImageLoadToken() {
-  state.activeLoadToken += 1;
-  return state.activeLoadToken;
-}
-
-function finalizeImageLoad(loadToken) {
-  if (loadToken !== state.activeLoadToken) {
-    return;
-  }
-
+function finalizeImageLoad() {
   state.imageLoaded = true;
-  state.drag = null;
   state.naturalWidth = imagePreview.naturalWidth;
   state.naturalHeight = imagePreview.naturalHeight;
-  state.previewWidth = 0;
-  state.previewHeight = 0;
-  state.lastPreviewAt = 0;
   imageMeta.textContent = `${state.naturalWidth} × ${state.naturalHeight}px`;
   emptyState.hidden = true;
   stage.hidden = false;
@@ -630,12 +484,8 @@ function finalizeImageLoad(loadToken) {
   initializeCrop();
 }
 
-function loadImageSource(source, loadToken = createImageLoadToken()) {
-  if (loadToken !== state.activeLoadToken) {
-    return;
-  }
-
-  imagePreview.onload = () => finalizeImageLoad(loadToken);
+function loadImageSource(source) {
+  imagePreview.onload = finalizeImageLoad;
   imagePreview.src = source;
 }
 
@@ -644,15 +494,8 @@ function loadSelectedImage(file) {
     return;
   }
 
-  const loadToken = createImageLoadToken();
   const reader = new FileReader();
-  reader.onload = () => {
-    if (typeof reader.result !== "string" || loadToken !== state.activeLoadToken) {
-      return;
-    }
-
-    loadImageSource(reader.result, loadToken);
-  };
+  reader.onload = () => loadImageSource(reader.result);
   reader.readAsDataURL(file);
 }
 
@@ -688,21 +531,6 @@ function handleFileDrop(event) {
 
 imageInput.addEventListener("change", (event) => {
   loadSelectedImage(event.target.files?.[0]);
-  event.target.value = "";
-});
-
-ratioButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    if (ratioPreset.value === button.dataset.ratioValue) {
-      return;
-    }
-
-    ratioPreset.value = button.dataset.ratioValue;
-    syncRatioUi();
-    if (state.imageLoaded) {
-      applyRatioToCurrentCrop();
-    }
-  });
 });
 
 ratioPreset.addEventListener("change", () => {
