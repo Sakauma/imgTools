@@ -14,11 +14,14 @@ const stage = document.querySelector("#stage");
 const imagePreview = document.querySelector("#imagePreview");
 const cropBox = document.querySelector("#cropBox");
 const resultCanvas = document.querySelector("#resultCanvas");
+const resultContext = resultCanvas.getContext("2d");
 const imageMeta = document.querySelector("#imageMeta");
 const cropMeta = document.querySelector("#cropMeta");
 const ratioMeta = document.querySelector("#ratioMeta");
 
 const MIN_CROP_SIZE = 48;
+const PREVIEW_MAX_SIZE = 420;
+const DRAG_PREVIEW_INTERVAL = 90;
 const state = {
   imageLoaded: false,
   naturalWidth: 0,
@@ -29,6 +32,11 @@ const state = {
   drag: null,
   dropDepth: 0,
   activeLoadToken: 0,
+  previewRenderId: 0,
+  previewThrottleId: 0,
+  lastPreviewAt: 0,
+  previewWidth: 0,
+  previewHeight: 0,
 };
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -71,6 +79,54 @@ function syncRatioUi() {
   ratioMeta.textContent = getRatioLabel();
 }
 
+function cancelPreviewThrottle() {
+  if (!state.previewThrottleId) {
+    return;
+  }
+
+  window.clearTimeout(state.previewThrottleId);
+  state.previewThrottleId = 0;
+}
+
+function queuePreviewFrame() {
+  if (state.previewRenderId) {
+    return;
+  }
+
+  state.previewRenderId = window.requestAnimationFrame(() => {
+    state.previewRenderId = 0;
+    renderResult();
+    state.lastPreviewAt = performance.now();
+  });
+}
+
+function queuePreviewRender(mode = "immediate") {
+  if (!state.imageLoaded || !state.crop) {
+    return;
+  }
+
+  if (mode === "immediate") {
+    cancelPreviewThrottle();
+    queuePreviewFrame();
+    return;
+  }
+
+  const elapsed = performance.now() - state.lastPreviewAt;
+  if (elapsed >= DRAG_PREVIEW_INTERVAL) {
+    queuePreviewFrame();
+    return;
+  }
+
+  if (state.previewThrottleId) {
+    return;
+  }
+
+  state.previewThrottleId = window.setTimeout(() => {
+    state.previewThrottleId = 0;
+    queuePreviewFrame();
+  }, Math.max(DRAG_PREVIEW_INTERVAL - elapsed, 16));
+}
+
 function fitStageToViewport() {
   if (!state.imageLoaded) {
     return;
@@ -109,7 +165,7 @@ function fitStageToViewport() {
     };
     ensureCropInBounds();
     renderCrop();
-    renderResult();
+    queuePreviewRender("immediate");
   }
 }
 
@@ -172,17 +228,13 @@ function ensureCropInBounds() {
 
 function applyRatioToCurrentCrop() {
   if (!state.crop) {
-    state.crop = createCenteredCrop();
-    renderCrop();
-    renderResult();
+    setCrop(createCenteredCrop());
     return;
   }
 
   const ratio = getActiveRatio();
   if (!ratio) {
-    ensureCropInBounds();
-    renderCrop();
-    renderResult();
+    setCrop({ ...state.crop });
     return;
   }
 
@@ -201,15 +253,12 @@ function applyRatioToCurrentCrop() {
   width = clamp(width, MIN_CROP_SIZE, state.stageWidth);
   height = clamp(height, MIN_CROP_SIZE, state.stageHeight);
 
-  state.crop = {
+  setCrop({
     x: clamp(centerX - width / 2, 0, state.stageWidth - width),
     y: clamp(centerY - height / 2, 0, state.stageHeight - height),
     width,
     height,
-  };
-
-  renderCrop();
-  renderResult();
+  });
 }
 
 function renderCrop() {
@@ -259,19 +308,26 @@ function renderResult() {
     return;
   }
 
-  const previewLimit = 420;
   const previewScale = Math.min(
-    previewLimit / sourceRect.width,
-    previewLimit / sourceRect.height,
+    PREVIEW_MAX_SIZE / sourceRect.width,
+    PREVIEW_MAX_SIZE / sourceRect.height,
     1
   );
 
-  resultCanvas.width = Math.max(1, Math.round(sourceRect.width * previewScale));
-  resultCanvas.height = Math.max(1, Math.round(sourceRect.height * previewScale));
+  const previewWidth = Math.max(1, Math.round(sourceRect.width * previewScale));
+  const previewHeight = Math.max(1, Math.round(sourceRect.height * previewScale));
 
-  const context = resultCanvas.getContext("2d");
-  context.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-  context.drawImage(
+  if (previewWidth !== state.previewWidth || previewHeight !== state.previewHeight) {
+    state.previewWidth = previewWidth;
+    state.previewHeight = previewHeight;
+    resultCanvas.width = previewWidth;
+    resultCanvas.height = previewHeight;
+  }
+
+  resultContext.clearRect(0, 0, state.previewWidth, state.previewHeight);
+  resultContext.imageSmoothingEnabled = true;
+  resultContext.imageSmoothingQuality = state.drag ? "medium" : "high";
+  resultContext.drawImage(
     imagePreview,
     sourceRect.x,
     sourceRect.y,
@@ -279,8 +335,8 @@ function renderResult() {
     sourceRect.height,
     0,
     0,
-    resultCanvas.width,
-    resultCanvas.height
+    state.previewWidth,
+    state.previewHeight
   );
 }
 
@@ -315,11 +371,11 @@ function getStagePoint(clientX, clientY) {
   };
 }
 
-function setCrop(nextCrop) {
+function setCrop(nextCrop, { previewMode = "immediate" } = {}) {
   state.crop = nextCrop;
   ensureCropInBounds();
   renderCrop();
-  renderResult();
+  queuePreviewRender(previewMode);
 }
 
 function centerCurrentCrop() {
@@ -340,7 +396,7 @@ function moveCrop(clientX, clientY) {
   const offsetY = state.drag.offsetY;
   const x = clamp(point.x - offsetX, 0, state.stageWidth - state.crop.width);
   const y = clamp(point.y - offsetY, 0, state.stageHeight - state.crop.height);
-  setCrop({ ...state.crop, x, y });
+  setCrop({ ...state.crop, x, y }, { previewMode: "throttled" });
 }
 
 function resizeFreeform(handle, clientX, clientY) {
@@ -367,12 +423,15 @@ function resizeFreeform(handle, clientX, clientY) {
     bottom = clamp(point.y, top + MIN_CROP_SIZE, state.stageHeight);
   }
 
-  setCrop({
-    x: left,
-    y: top,
-    width: right - left,
-    height: bottom - top,
-  });
+  setCrop(
+    {
+      x: left,
+      y: top,
+      width: right - left,
+      height: bottom - top,
+    },
+    { previewMode: "throttled" }
+  );
 }
 
 function resizeLockedRatio(handle, clientX, clientY) {
@@ -426,7 +485,7 @@ function resizeLockedRatio(handle, clientX, clientY) {
   const x = horizontal < 0 ? anchorX - width : anchorX;
   const y = vertical < 0 ? anchorY - height : anchorY;
 
-  setCrop({ x, y, width, height });
+  setCrop({ x, y, width, height }, { previewMode: "throttled" });
 }
 
 function beginDrag(event) {
@@ -485,12 +544,11 @@ function finishDrag(event) {
   }
 
   state.drag = null;
+  queuePreviewRender("immediate");
 }
 
 function initializeCrop() {
-  state.crop = createCenteredCrop();
-  renderCrop();
-  renderResult();
+  setCrop(createCenteredCrop());
 }
 
 function createImageLoadToken() {
@@ -506,6 +564,9 @@ function finalizeImageLoad(loadToken) {
   state.imageLoaded = true;
   state.naturalWidth = imagePreview.naturalWidth;
   state.naturalHeight = imagePreview.naturalHeight;
+  state.previewWidth = 0;
+  state.previewHeight = 0;
+  state.lastPreviewAt = 0;
   imageMeta.textContent = `${state.naturalWidth} × ${state.naturalHeight}px`;
   emptyState.hidden = true;
   stage.hidden = false;
