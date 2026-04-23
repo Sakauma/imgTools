@@ -176,6 +176,10 @@ h3 {
   margin-top: 16px;
 }
 
+.button-row {
+  margin-top: 16px;
+}
+
 .field span,
 .field label,
 .metric-label {
@@ -313,8 +317,38 @@ input::file-selector-button {
 }
 
 .editor-panel,
+.session-strip-panel,
 .result-panel {
   min-width: 0;
+}
+
+.session-strip-panel {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.session-strip-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: end;
+}
+
+.session-strip-panel .stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.session-strip-panel .stat-card {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 18px;
+}
+
+.session-strip-panel .stat-card dd {
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .viewport,
@@ -334,8 +368,8 @@ input::file-selector-button {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 560px;
-  padding: 18px;
+  min-height: 480px;
+  padding: 16px;
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
@@ -462,8 +496,8 @@ input::file-selector-button {
 .result-frame {
   display: grid;
   place-items: center;
-  min-height: 280px;
-  padding: 20px;
+  min-height: 248px;
+  padding: 18px;
 }
 
 .result-empty {
@@ -522,6 +556,7 @@ input::file-selector-button {
 
   .section-head,
   .section-title,
+  .session-strip-head,
   .toggle-line,
   .range-meta,
   .tool-note,
