@@ -23,15 +23,19 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Check JavaScript syntax
-        run: node --check script.js
-
       - name: Verify required files
         shell: bash
         run: |
           set -euo pipefail
           test -f index.html
           test -f styles.css
-          test -f script.js
-          test -f demo.svg
+          test -f package.json
+          test -f src/main.js
           test -f README.md
+          test -f demo.svg
+
+      - name: Check JavaScript syntax
+        run: npm run check
+
+      - name: Run tests
+        run: npm test
