@@ -1,0 +1,25 @@
+export function collectElements(doc) {
+  return {
+    imageInput: doc.querySelector("#imageInput"),
+    loadDemoBtn: doc.querySelector("#loadDemoBtn"),
+    resetSessionBtn: doc.querySelector("#resetSessionBtn"),
+    undoBtn: doc.querySelector("#undoBtn"),
+    redoBtn: doc.querySelector("#redoBtn"),
+    toolTabs: doc.querySelector("#toolTabs"),
+    toolPanel: doc.querySelector("#toolPanel"),
+    viewport: doc.querySelector("#viewport"),
+    emptyState: doc.querySelector("#emptyState"),
+    stageShell: doc.querySelector("#stageShell"),
+    stageCanvas: doc.querySelector("#stageCanvas"),
+    cropBox: doc.querySelector("#cropBox"),
+    activeToolLabel: doc.querySelector("#activeToolLabel"),
+    toolHint: doc.querySelector("#toolHint"),
+    resultCanvas: doc.querySelector("#resultCanvas"),
+    resultEmptyState: doc.querySelector("#resultEmptyState"),
+    exportMeta: doc.querySelector("#exportMeta"),
+    sourceMeta: doc.querySelector("#sourceMeta"),
+    cropMeta: doc.querySelector("#cropMeta"),
+    outputMeta: doc.querySelector("#outputMeta"),
+    transformMeta: doc.querySelector("#transformMeta"),
+  };
+}

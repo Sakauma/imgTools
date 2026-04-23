@@ -8,7 +8,7 @@ export function createHistoryState() {
 export function createSnapshot(session) {
   return structuredClone({
     activeTool: session.activeTool,
-    transforms: session.transforms,
+    pipeline: session.pipeline,
     exportOptions: session.exportOptions,
   });
 }
@@ -19,12 +19,11 @@ function snapshotsEqual(left, right) {
 
 export function restoreSnapshot(session, snapshot) {
   session.activeTool = snapshot.activeTool;
-  session.transforms = structuredClone(snapshot.transforms);
+  session.pipeline = structuredClone(snapshot.pipeline);
   session.exportOptions = structuredClone(snapshot.exportOptions);
 }
 
-export function commitSnapshot(session, beforeSnapshot) {
-  const afterSnapshot = createSnapshot(session);
+export function commitSnapshot(session, beforeSnapshot, afterSnapshot = createSnapshot(session)) {
   if (snapshotsEqual(beforeSnapshot, afterSnapshot)) {
     return false;
   }

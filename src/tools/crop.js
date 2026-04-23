@@ -20,13 +20,13 @@ export const cropTool = {
         <div class="ratio-row">
           ${PRESETS.map(
             (preset) =>
-              `<button class="ratio-chip${session.transforms.cropAspectMode === preset.value ? " is-active" : ""}" type="button" data-ratio="${preset.value}">${preset.label}</button>`
+              `<button class="ratio-chip${session.pipeline.crop.aspectMode === preset.value ? " is-active" : ""}" type="button" data-ratio="${preset.value}">${preset.label}</button>`
           ).join("")}
         </div>
       </div>
 
       <div class="field-group two-col" id="customAspectFields" ${
-        session.transforms.cropAspectMode === "custom" ? "" : "hidden"
+        session.pipeline.crop.aspectMode === "custom" ? "" : "hidden"
       }>
         <label class="field">
           <span>宽度比</span>
@@ -55,8 +55,8 @@ export const cropTool = {
 
     const customWidth = root.querySelector("#customAspectWidth");
     const customHeight = root.querySelector("#customAspectHeight");
-    customWidth.value = session.transforms.customAspect.width;
-    customHeight.value = session.transforms.customAspect.height;
+    customWidth.value = session.pipeline.crop.customAspect.width;
+    customHeight.value = session.pipeline.crop.customAspect.height;
     customWidth.addEventListener("input", (event) => actions.setCustomAspectWidth(event.target.value));
     customHeight.addEventListener("input", (event) =>
       actions.setCustomAspectHeight(event.target.value)

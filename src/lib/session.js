@@ -9,20 +9,29 @@ import {
 import { clampQuality, getBaseFileName } from "./export.js";
 import { createHistoryState } from "./history.js";
 
-export function createDefaultTransforms() {
+function serializeState(value) {
+  return JSON.stringify(value);
+}
+
+export function createDefaultPipeline() {
   return {
-    cropRect: createCenteredCropRect({ scale: DEFAULT_CROP_SCALE }),
-    cropAspectMode: "free",
-    customAspect: { width: 4, height: 5 },
-    rotateQuarterTurns: 0,
-    flipX: false,
-    flipY: false,
+    orientation: {
+      rotateQuarterTurns: 0,
+      flipX: false,
+      flipY: false,
+    },
+    crop: {
+      rect: createCenteredCropRect({ scale: DEFAULT_CROP_SCALE }),
+      aspectMode: "free",
+      customAspect: { width: 4, height: 5 },
+    },
     resize: {
       enabled: false,
       targetWidth: null,
       targetHeight: null,
       keepAspectRatio: true,
     },
+    adjustments: {},
   };
 }
 
@@ -34,11 +43,52 @@ export function createDefaultExportOptions(fileName) {
   };
 }
 
+export function getOrientationState(pipeline) {
+  return {
+    rotateQuarterTurns: pipeline.orientation.rotateQuarterTurns,
+    flipX: pipeline.orientation.flipX,
+    flipY: pipeline.orientation.flipY,
+  };
+}
+
+export function getPixelPipelineState(pipeline) {
+  return {
+    orientation: getOrientationState(pipeline),
+    crop: {
+      rect: pipeline.crop.rect,
+    },
+    resize: pipeline.resize.enabled
+      ? {
+          enabled: true,
+          targetWidth: pipeline.resize.targetWidth,
+          targetHeight: pipeline.resize.targetHeight,
+        }
+      : {
+          enabled: false,
+        },
+    adjustments: pipeline.adjustments,
+  };
+}
+
+export function hasOrientationStateChanged(leftSnapshot, rightSnapshot) {
+  return (
+    serializeState(getOrientationState(leftSnapshot.pipeline)) !==
+    serializeState(getOrientationState(rightSnapshot.pipeline))
+  );
+}
+
+export function hasPixelPipelineChanged(leftSnapshot, rightSnapshot) {
+  return (
+    serializeState(getPixelPipelineState(leftSnapshot.pipeline)) !==
+    serializeState(getPixelPipelineState(rightSnapshot.pipeline))
+  );
+}
+
 export function createEditorSession() {
   return {
     source: null,
     activeTool: "crop",
-    transforms: createDefaultTransforms(),
+    pipeline: createDefaultPipeline(),
     exportOptions: createDefaultExportOptions("imgtools-output"),
     history: createHistoryState(),
     ui: {
@@ -54,22 +104,75 @@ export function createEditorSession() {
     cache: {
       orientedKey: "",
       orientedCanvas: null,
+      outputKey: "",
+      outputCanvas: null,
+      outputMeta: null,
     },
   };
 }
 
-export function invalidateDerivedCaches(session) {
+export function invalidateOrientationCache(session) {
   session.cache.orientedKey = "";
   session.cache.orientedCanvas = null;
 }
 
+export function invalidateOutputCache(session) {
+  session.cache.outputKey = "";
+  session.cache.outputCanvas = null;
+  session.cache.outputMeta = null;
+}
+
+export function invalidatePixelCaches(session, { orientation = false } = {}) {
+  if (orientation) {
+    invalidateOrientationCache(session);
+  }
+
+  invalidateOutputCache(session);
+}
+
+export function invalidateDerivedCaches(session) {
+  invalidatePixelCaches(session, { orientation: true });
+}
+
+export function invalidateCachesForSnapshotChange(session, beforeSnapshot, afterSnapshot) {
+  if (!beforeSnapshot || !afterSnapshot) {
+    invalidateDerivedCaches(session);
+    return;
+  }
+
+  if (hasOrientationStateChanged(beforeSnapshot, afterSnapshot)) {
+    invalidatePixelCaches(session, { orientation: true });
+    return;
+  }
+
+  if (hasPixelPipelineChanged(beforeSnapshot, afterSnapshot)) {
+    invalidateOutputCache(session);
+  }
+}
+
+export function getOrientationCacheKey(session) {
+  if (!session.source) {
+    return "";
+  }
+
+  return [session.source.token, serializeState(getOrientationState(session.pipeline))].join(":");
+}
+
+export function getOutputCacheKey(session) {
+  if (!session.source) {
+    return "";
+  }
+
+  return [session.source.token, serializeState(getPixelPipelineState(session.pipeline))].join(":");
+}
+
 export function getLockedCropRatio(session) {
-  const { cropAspectMode, customAspect } = session.transforms;
-  if (cropAspectMode === "free") {
+  const { aspectMode, customAspect } = session.pipeline.crop;
+  if (aspectMode === "free") {
     return null;
   }
 
-  if (cropAspectMode === "custom") {
+  if (aspectMode === "custom") {
     const width = Number(customAspect.width);
     const height = Number(customAspect.height);
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
@@ -79,7 +182,7 @@ export function getLockedCropRatio(session) {
     return width / height;
   }
 
-  const [width, height] = cropAspectMode.split(":").map(Number);
+  const [width, height] = aspectMode.split(":").map(Number);
   return width / height;
 }
 
@@ -91,7 +194,7 @@ export function getOrientedSourceSize(session) {
   return getOrientedSize(
     session.source.width,
     session.source.height,
-    session.transforms.rotateQuarterTurns
+    session.pipeline.orientation.rotateQuarterTurns
   );
 }
 
@@ -101,7 +204,7 @@ export function getCropBaseSize(session) {
   }
 
   const oriented = getOrientedSourceSize(session);
-  const rect = getPixelCropRect(session.transforms.cropRect, oriented.width, oriented.height);
+  const rect = getPixelCropRect(session.pipeline.crop.rect, oriented.width, oriented.height);
   return { width: rect.width, height: rect.height };
 }
 
@@ -111,7 +214,7 @@ export function syncResizeTargets(session, { force = false } = {}) {
   }
 
   const baseSize = getCropBaseSize(session);
-  const resize = session.transforms.resize;
+  const resize = session.pipeline.resize;
 
   if (!resize.enabled || force || !resize.targetWidth || !resize.targetHeight) {
     resize.targetWidth = baseSize.width;
@@ -131,7 +234,7 @@ export function syncSessionDerivedState(session, { forceResizeTargets = false } 
   const oriented = getOrientedSourceSize(session);
   const minWidthRatio = MIN_CROP_SIZE / oriented.width;
   const minHeightRatio = MIN_CROP_SIZE / oriented.height;
-  session.transforms.cropRect = clampCropRect(session.transforms.cropRect, {
+  session.pipeline.crop.rect = clampCropRect(session.pipeline.crop.rect, {
     minWidthRatio,
     minHeightRatio,
     ratio: getLockedCropRatio(session),
@@ -149,7 +252,7 @@ export function resetSessionForSource(session, { image, name, width, height }) {
     token: `${Date.now()}-${Math.random()}`,
   };
   session.activeTool = "crop";
-  session.transforms = createDefaultTransforms();
+  session.pipeline = createDefaultPipeline();
   session.exportOptions = createDefaultExportOptions(name);
   session.history = createHistoryState();
   session.ui.dropDepth = 0;

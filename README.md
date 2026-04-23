@@ -26,3 +26,5 @@
 
 - `npm run check`：检查所有 JavaScript 文件语法
 - `npm test`：运行纯函数测试
+- `npm run test:ui`：运行 Playwright 浏览器级回归测试
+- `npm run test:all`：依次运行单元测试与浏览器测试

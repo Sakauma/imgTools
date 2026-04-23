@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 const roots = ["src", "tests", "scripts"];
+const rootFiles = ["playwright.config.js"];
 
 async function collectJavaScriptFiles(root) {
   const entries = await readdir(root, { withFileTypes: true });
@@ -31,6 +32,12 @@ for (const root of roots) {
   }
 
   targets.push(...(await collectJavaScriptFiles(root)));
+}
+
+for (const file of rootFiles) {
+  if (existsSync(file)) {
+    targets.push(file);
+  }
 }
 
 for (const target of targets) {

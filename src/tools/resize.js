@@ -42,14 +42,14 @@ export const resizeTool = {
     const keepAspectRatio = root.querySelector("#keepAspectRatio");
     const disableResizeBtn = root.querySelector("#disableResizeBtn");
 
-    enabled.checked = session.transforms.resize.enabled;
-    resizeWidth.value = session.transforms.resize.targetWidth ?? derived.cropSize.width;
-    resizeHeight.value = session.transforms.resize.targetHeight ?? derived.cropSize.height;
-    resizeWidth.disabled = !session.transforms.resize.enabled;
-    resizeHeight.disabled = !session.transforms.resize.enabled;
-    keepAspectRatio.checked = session.transforms.resize.keepAspectRatio;
-    keepAspectRatio.disabled = !session.transforms.resize.enabled;
-    disableResizeBtn.disabled = !session.transforms.resize.enabled;
+    enabled.checked = session.pipeline.resize.enabled;
+    resizeWidth.value = session.pipeline.resize.targetWidth ?? derived.cropSize.width;
+    resizeHeight.value = session.pipeline.resize.targetHeight ?? derived.cropSize.height;
+    resizeWidth.disabled = !session.pipeline.resize.enabled;
+    resizeHeight.disabled = !session.pipeline.resize.enabled;
+    keepAspectRatio.checked = session.pipeline.resize.keepAspectRatio;
+    keepAspectRatio.disabled = !session.pipeline.resize.enabled;
+    disableResizeBtn.disabled = !session.pipeline.resize.enabled;
 
     enabled.addEventListener("change", (event) => actions.setResizeEnabled(event.target.checked));
     resizeWidth.addEventListener("input", (event) => actions.setResizeWidth(event.target.value));

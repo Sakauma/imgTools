@@ -3,7 +3,7 @@ export const rotateTool = {
   label: "旋转",
   hint: "旋转和翻转总是在裁剪之前应用。",
   render(root, session, actions) {
-    const rotation = session.transforms.rotateQuarterTurns * 90;
+    const rotation = session.pipeline.orientation.rotateQuarterTurns * 90;
     root.innerHTML = `
       <div class="button-row">
         <button id="rotateLeftBtn" type="button">左转 90°</button>
@@ -22,7 +22,7 @@ export const rotateTool = {
 
       <div class="tool-summary">
         <strong>当前方向</strong>
-        旋转 ${rotation}° · ${session.transforms.flipX ? "水平翻转" : "未水平翻转"} · ${session.transforms.flipY ? "垂直翻转" : "未垂直翻转"}
+        旋转 ${rotation}° · ${session.pipeline.orientation.flipX ? "水平翻转" : "未水平翻转"} · ${session.pipeline.orientation.flipY ? "垂直翻转" : "未垂直翻转"}
       </div>
     `;
 
