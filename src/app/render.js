@@ -1,3 +1,4 @@
+import { getAdjustmentSummary, hasActiveAdjustments } from "../lib/adjustments.js";
 import { getDisplayCropRect } from "../lib/geometry.js";
 import { getFormatConfig, getOutputSize, isQualityAdjustable } from "../lib/export.js";
 import { renderResultPreview, renderStageCanvas } from "../lib/pipeline.js";
@@ -127,6 +128,9 @@ export function createRenderer({ session, elements, getActions, window = globalT
     }
     if (session.pipeline.resize.enabled) {
       bits.push("已调整尺寸");
+    }
+    if (hasActiveAdjustments(session.pipeline.adjustments)) {
+      bits.push(getAdjustmentSummary(session.pipeline.adjustments));
     }
     return bits.length > 0 ? bits.join(" · ") : "仅裁剪";
   }

@@ -1,4 +1,8 @@
 import {
+  ADJUSTMENT_LIMITS,
+  createDefaultAdjustments,
+} from "../lib/adjustments.js";
+import {
   MIN_CROP_SIZE,
   constrainCropToAspect,
   createCenteredCropRect,
@@ -214,6 +218,25 @@ export function createActions({ session, elements, renderAll, downloadCurrentRes
     setFileName(value) {
       applyTrackedChange(() => {
         session.exportOptions.fileName = value.trim() || session.source?.name || "imgtools-output";
+      });
+    },
+    setAdjustmentValue(key, value) {
+      applyTrackedChange(() => {
+        if (!(key in ADJUSTMENT_LIMITS)) {
+          return;
+        }
+
+        session.pipeline.adjustments[key] = Number(value);
+      });
+    },
+    setAdjustmentToggle(key, enabled) {
+      applyTrackedChange(() => {
+        session.pipeline.adjustments[key] = Boolean(enabled);
+      });
+    },
+    resetAdjustments() {
+      applyTrackedChange(() => {
+        session.pipeline.adjustments = createDefaultAdjustments();
       });
     },
     download() {

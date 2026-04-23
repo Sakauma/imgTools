@@ -6,6 +6,7 @@ import {
   getOrientedSize,
   getPixelCropRect,
 } from "./geometry.js";
+import { createDefaultAdjustments, normalizeAdjustments } from "./adjustments.js";
 import { clampQuality, getBaseFileName } from "./export.js";
 import { createHistoryState } from "./history.js";
 
@@ -31,7 +32,7 @@ export function createDefaultPipeline() {
       targetHeight: null,
       keepAspectRatio: true,
     },
-    adjustments: {},
+    adjustments: createDefaultAdjustments(),
   };
 }
 
@@ -63,10 +64,10 @@ export function getPixelPipelineState(pipeline) {
           targetWidth: pipeline.resize.targetWidth,
           targetHeight: pipeline.resize.targetHeight,
         }
-      : {
+        : {
           enabled: false,
         },
-    adjustments: pipeline.adjustments,
+    adjustments: normalizeAdjustments(pipeline.adjustments),
   };
 }
 
@@ -96,6 +97,7 @@ export function createEditorSession() {
       drag: null,
       pendingHistorySnapshot: null,
       activeLoadToken: 0,
+      adjustmentSection: "basic",
       stageMetrics: null,
       previewRenderId: 0,
       previewThrottleId: 0,
@@ -239,6 +241,7 @@ export function syncSessionDerivedState(session, { forceResizeTargets = false } 
     minHeightRatio,
     ratio: getLockedCropRatio(session),
   });
+  session.pipeline.adjustments = normalizeAdjustments(session.pipeline.adjustments);
   session.exportOptions.quality = clampQuality(session.exportOptions.quality);
   syncResizeTargets(session, { force: forceResizeTargets });
 }

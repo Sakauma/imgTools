@@ -8,123 +8,114 @@
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar">
-        <section class="panel hero-panel">
+      <header class="panel topbar">
+        <div class="brand-block">
           <p class="eyebrow">imgTools</p>
-          <h1>本地基础图像工具箱</h1>
+          <h1>本地图片工具箱</h1>
           <p class="intro">
-            在一个工作台里完成裁剪、旋转翻转、尺寸调整和格式导出。所有处理都在当前浏览器完成，不上传图片。
+            先选图，再在右侧切换工具。所有处理都在浏览器里完成，不上传图片。
           </p>
-        </section>
+        </div>
 
-        <section class="panel">
-          <div class="section-title">
+        <div class="topbar-controls">
+          <div class="source-stack">
             <p class="section-kicker">Source</p>
-            <h2>图像来源</h2>
+
+            <label class="field field-inline">
+              <span>打开图片</span>
+              <input id="imageInput" type="file" accept="image/*" />
+            </label>
+
+            <div class="button-row toolbar-actions">
+              <button id="loadDemoBtn" type="button">加载示例图</button>
+              <button id="undoBtn" type="button" disabled>撤销</button>
+              <button id="redoBtn" type="button" disabled>重做</button>
+              <button id="resetSessionBtn" type="button">重置全部设置</button>
+            </div>
           </div>
+        </div>
+      </header>
 
-          <label class="field">
-            <span>选择图像</span>
-            <input id="imageInput" type="file" accept="image/*" />
-          </label>
-
-          <div class="button-row">
-            <button id="loadDemoBtn" type="button">加载示例图</button>
-            <button id="resetSessionBtn" type="button">重置全部设置</button>
-          </div>
-
-          <div class="button-row">
-            <button id="undoBtn" type="button" disabled>撤销</button>
-            <button id="redoBtn" type="button" disabled>重做</button>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-title">
-            <p class="section-kicker">Tools</p>
-            <h2>工具</h2>
-          </div>
-
-          <div id="toolTabs" class="tool-tabs" aria-label="工具切换"></div>
-          <div id="toolPanel" class="tool-panel"></div>
-        </section>
-
-      </aside>
-
-      <main class="workspace">
-        <section class="panel session-strip-panel">
-          <div class="session-strip-head">
-            <div>
-              <p class="section-kicker">Session</p>
-              <h2>当前会话</h2>
-            </div>
-            <p class="hint">这里汇总当前画布和导出设置的实时结果。</p>
-          </div>
-
-          <dl class="stats-grid">
-            <div class="stat-card">
-              <dt>源图尺寸</dt>
-              <dd id="sourceMeta">未加载</dd>
-            </div>
-            <div class="stat-card">
-              <dt>裁剪尺寸</dt>
-              <dd id="cropMeta">未选择</dd>
-            </div>
-            <div class="stat-card">
-              <dt>输出尺寸</dt>
-              <dd id="outputMeta">未输出</dd>
-            </div>
-            <div class="stat-card">
-              <dt>当前变换</dt>
-              <dd id="transformMeta">无</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section class="panel editor-panel">
-          <div class="section-head">
-            <div>
-              <p class="section-kicker">Canvas</p>
-              <h2 id="activeToolLabel">裁剪</h2>
-            </div>
-            <p id="toolHint" class="hint">拖动裁剪框内部可移动，拖四角可缩放。</p>
-          </div>
-
-          <div id="viewport" class="viewport">
-            <div id="emptyState" class="empty-state">
-              <p>选择图片或拖拽图片到这里，开始编辑。</p>
+      <main class="workbench">
+        <section class="canvas-column">
+          <section class="panel editor-panel">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Canvas</p>
+                <h2 id="activeToolLabel">裁剪</h2>
+              </div>
+              <p id="toolHint" class="hint">拖动裁剪框内部可移动，拖四角可缩放。</p>
             </div>
 
-            <div id="stageShell" class="stage-shell" hidden>
-              <canvas id="stageCanvas" aria-label="图像编辑画布"></canvas>
-              <div id="cropBox" class="crop-box" tabindex="0" aria-label="裁剪框" hidden>
-                <span class="handle handle-nw" data-handle="nw"></span>
-                <span class="handle handle-ne" data-handle="ne"></span>
-                <span class="handle handle-sw" data-handle="sw"></span>
-                <span class="handle handle-se" data-handle="se"></span>
-                <span class="rule-of-thirds vertical one"></span>
-                <span class="rule-of-thirds vertical two"></span>
-                <span class="rule-of-thirds horizontal one"></span>
-                <span class="rule-of-thirds horizontal two"></span>
+            <div id="viewport" class="viewport">
+              <div id="emptyState" class="empty-state">
+                <p>选择图片或拖拽图片到这里，开始编辑。</p>
+              </div>
+
+              <div id="stageShell" class="stage-shell" hidden>
+                <canvas id="stageCanvas" aria-label="图像编辑画布"></canvas>
+                <div id="cropBox" class="crop-box" tabindex="0" aria-label="裁剪框" hidden>
+                  <span class="handle handle-nw" data-handle="nw"></span>
+                  <span class="handle handle-ne" data-handle="ne"></span>
+                  <span class="handle handle-sw" data-handle="sw"></span>
+                  <span class="handle handle-se" data-handle="se"></span>
+                  <span class="rule-of-thirds vertical one"></span>
+                  <span class="rule-of-thirds vertical two"></span>
+                  <span class="rule-of-thirds horizontal one"></span>
+                  <span class="rule-of-thirds horizontal two"></span>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
         </section>
 
-        <section class="panel result-panel">
-          <div class="section-head">
-            <div>
-              <p class="section-kicker">Result</p>
-              <h2>输出预览</h2>
+        <aside class="inspector">
+          <section class="panel tools-panel">
+            <div class="section-title compact-head">
+              <div>
+                <p class="section-kicker">Tools</p>
+                <h2>工具设置</h2>
+              </div>
             </div>
-            <p id="exportMeta" class="hint">PNG · 原始质量</p>
-          </div>
 
-          <div class="result-frame">
-            <div id="resultEmptyState" class="result-empty">加载图片后，这里会显示最终输出预览。</div>
-            <canvas id="resultCanvas" hidden aria-label="输出预览"></canvas>
-          </div>
-        </section>
+            <div id="toolTabs" class="tool-tabs" aria-label="工具切换"></div>
+            <div id="toolPanel" class="tool-panel"></div>
+          </section>
+
+          <section class="panel result-panel">
+            <div class="section-head">
+              <div>
+                <p class="section-kicker">Result</p>
+                <h2>输出预览</h2>
+              </div>
+              <p id="exportMeta" class="hint">PNG · 原始质量</p>
+            </div>
+
+            <dl class="stats-grid compact-stats">
+              <div class="stat-card">
+                <dt>源图尺寸</dt>
+                <dd id="sourceMeta">未加载</dd>
+              </div>
+              <div class="stat-card">
+                <dt>裁剪尺寸</dt>
+                <dd id="cropMeta">未选择</dd>
+              </div>
+              <div class="stat-card">
+                <dt>输出尺寸</dt>
+                <dd id="outputMeta">未输出</dd>
+              </div>
+              <div class="stat-card stat-card-wide">
+                <dt>当前变换</dt>
+                <dd id="transformMeta">无</dd>
+              </div>
+            </dl>
+
+            <div class="result-frame">
+              <div id="resultEmptyState" class="result-empty">加载图片后，这里会显示最终输出预览。</div>
+              <canvas id="resultCanvas" hidden aria-label="输出预览"></canvas>
+            </div>
+          </section>
+        </aside>
       </main>
     </div>
 

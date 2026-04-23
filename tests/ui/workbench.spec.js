@@ -62,6 +62,25 @@ test("rotate tool works with undo and redo", async ({ page }) => {
   await expect(page.locator("#transformMeta")).toContainText("旋转 90°");
 });
 
+test("adjustments tool updates session summary and supports undo", async ({ page }) => {
+  await openWorkbench(page);
+
+  await page.getByRole("button", { name: "调整" }).click();
+  await page.locator("#brightnessRange").evaluate((element, value) => {
+    element.value = value;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  }, "30");
+  await expect(page.locator("#transformMeta")).toContainText("亮度");
+
+  await page.getByRole("button", { name: "色彩" }).click();
+  await page.locator("#grayscaleToggle").check();
+  await expect(page.locator("#transformMeta")).toContainText("灰度");
+
+  await page.locator("#undoBtn").click();
+  await expect(page.locator("#transformMeta")).not.toContainText("灰度");
+  await expect(page.locator("#transformMeta")).toContainText("亮度");
+});
+
 test("resize and export settings update output metadata", async ({ page }) => {
   await openWorkbench(page);
 
