@@ -37,6 +37,7 @@ const state = {
   crop: null,
   drag: null,
   dropDepth: 0,
+  activeLoadToken: 0,
   cropRenderId: 0,
   previewRenderId: 0,
   previewThrottleId: 0,
@@ -153,7 +154,7 @@ function fitStageToViewport() {
   }
 
   const bounds = viewport.getBoundingClientRect();
-  const maxWidth = Math.max(280, bounds.width - 40);
+  const maxWidth = Math.max(bounds.width - 40, Math.min(MIN_CROP_SIZE, bounds.width));
   const maxHeight = Math.max(260, window.innerHeight * 0.62);
   const imageRatio = state.naturalWidth / state.naturalHeight;
 
@@ -297,11 +298,20 @@ function getSourceRect() {
     return null;
   }
 
+  const left = (state.crop.x / state.stageWidth) * state.naturalWidth;
+  const top = (state.crop.y / state.stageHeight) * state.naturalHeight;
+  const right = ((state.crop.x + state.crop.width) / state.stageWidth) * state.naturalWidth;
+  const bottom = ((state.crop.y + state.crop.height) / state.stageHeight) * state.naturalHeight;
+  const x = clamp(Math.floor(left), 0, state.naturalWidth - 1);
+  const y = clamp(Math.floor(top), 0, state.naturalHeight - 1);
+  const clampedRight = clamp(Math.ceil(right), x + 1, state.naturalWidth);
+  const clampedBottom = clamp(Math.ceil(bottom), y + 1, state.naturalHeight);
+
   return {
-    x: Math.round((state.crop.x / state.stageWidth) * state.naturalWidth),
-    y: Math.round((state.crop.y / state.stageHeight) * state.naturalHeight),
-    width: Math.round((state.crop.width / state.stageWidth) * state.naturalWidth),
-    height: Math.round((state.crop.height / state.stageHeight) * state.naturalHeight),
+    x,
+    y,
+    width: clampedRight - x,
+    height: clampedBottom - y,
   };
 }
 
@@ -595,7 +605,16 @@ function initializeCrop() {
   setCrop(createCenteredCrop());
 }
 
-function finalizeImageLoad() {
+function createImageLoadToken() {
+  state.activeLoadToken += 1;
+  return state.activeLoadToken;
+}
+
+function finalizeImageLoad(loadToken) {
+  if (loadToken !== state.activeLoadToken) {
+    return;
+  }
+
   state.imageLoaded = true;
   state.drag = null;
   state.naturalWidth = imagePreview.naturalWidth;
@@ -611,8 +630,12 @@ function finalizeImageLoad() {
   initializeCrop();
 }
 
-function loadImageSource(source) {
-  imagePreview.onload = finalizeImageLoad;
+function loadImageSource(source, loadToken = createImageLoadToken()) {
+  if (loadToken !== state.activeLoadToken) {
+    return;
+  }
+
+  imagePreview.onload = () => finalizeImageLoad(loadToken);
   imagePreview.src = source;
 }
 
@@ -621,8 +644,15 @@ function loadSelectedImage(file) {
     return;
   }
 
+  const loadToken = createImageLoadToken();
   const reader = new FileReader();
-  reader.onload = () => loadImageSource(reader.result);
+  reader.onload = () => {
+    if (typeof reader.result !== "string" || loadToken !== state.activeLoadToken) {
+      return;
+    }
+
+    loadImageSource(reader.result, loadToken);
+  };
   reader.readAsDataURL(file);
 }
 
@@ -658,6 +688,7 @@ function handleFileDrop(event) {
 
 imageInput.addEventListener("change", (event) => {
   loadSelectedImage(event.target.files?.[0]);
+  event.target.value = "";
 });
 
 ratioButtons.forEach((button) => {

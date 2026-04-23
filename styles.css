@@ -52,7 +52,7 @@ body::before {
   grid-template-columns: 332px minmax(0, 1fr);
   gap: 16px;
   max-width: 1500px;
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
   padding: 16px;
   align-items: stretch;
@@ -65,7 +65,8 @@ body::before {
   flex-direction: column;
   gap: 12px;
   align-self: stretch;
-  min-height: calc(100vh - 32px);
+  min-height: calc(100dvh - 32px);
+  height: calc(100dvh - 32px);
 }
 
 .panel-hero,
@@ -342,7 +343,9 @@ input::file-selector-button {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: calc(100vh - 32px);
+  align-self: stretch;
+  min-height: calc(100dvh - 32px);
+  height: calc(100dvh - 32px);
 }
 
 .preview-card,
@@ -549,10 +552,12 @@ input::file-selector-button {
 
   .control-panel {
     position: static;
+    height: auto;
     min-height: auto;
   }
 
   .workspace {
+    height: auto;
     min-height: auto;
   }
 
