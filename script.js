@@ -28,6 +28,7 @@ const state = {
   crop: null,
   drag: null,
   dropDepth: 0,
+  activeLoadToken: 0,
 };
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -472,7 +473,16 @@ function initializeCrop() {
   renderResult();
 }
 
-function finalizeImageLoad() {
+function createImageLoadToken() {
+  state.activeLoadToken += 1;
+  return state.activeLoadToken;
+}
+
+function finalizeImageLoad(loadToken) {
+  if (loadToken !== state.activeLoadToken) {
+    return;
+  }
+
   state.imageLoaded = true;
   state.naturalWidth = imagePreview.naturalWidth;
   state.naturalHeight = imagePreview.naturalHeight;
@@ -484,8 +494,12 @@ function finalizeImageLoad() {
   initializeCrop();
 }
 
-function loadImageSource(source) {
-  imagePreview.onload = finalizeImageLoad;
+function loadImageSource(source, loadToken = createImageLoadToken()) {
+  if (loadToken !== state.activeLoadToken) {
+    return;
+  }
+
+  imagePreview.onload = () => finalizeImageLoad(loadToken);
   imagePreview.src = source;
 }
 
@@ -494,8 +508,15 @@ function loadSelectedImage(file) {
     return;
   }
 
+  const loadToken = createImageLoadToken();
   const reader = new FileReader();
-  reader.onload = () => loadImageSource(reader.result);
+  reader.onload = () => {
+    if (typeof reader.result !== "string" || loadToken !== state.activeLoadToken) {
+      return;
+    }
+
+    loadImageSource(reader.result, loadToken);
+  };
   reader.readAsDataURL(file);
 }
 
@@ -531,6 +552,7 @@ function handleFileDrop(event) {
 
 imageInput.addEventListener("change", (event) => {
   loadSelectedImage(event.target.files?.[0]);
+  event.target.value = "";
 });
 
 ratioPreset.addEventListener("change", () => {
