@@ -1,6 +1,7 @@
 import { buildOutputCanvas } from "../lib/pipeline.js";
 import { buildDownloadName, isQualityAdjustable } from "../lib/export.js";
 import { resetSessionForSource } from "../lib/session.js";
+import { resetRuntimeState, resetViewStateForSource } from "../lib/ui-state.js";
 
 function canvasToBlob(canvas, format, quality) {
   return new Promise((resolve) => {
@@ -10,14 +11,16 @@ function canvasToBlob(canvas, format, quality) {
 
 export function createImageIO({
   session,
+  viewState,
+  runtimeState,
   elements,
   renderAll,
   doc = document,
   window = globalThis.window,
 }) {
   function createLoadToken() {
-    session.ui.activeLoadToken += 1;
-    return session.ui.activeLoadToken;
+    runtimeState.activeLoadToken += 1;
+    return runtimeState.activeLoadToken;
   }
 
   function triggerDownload(href, fileName) {
@@ -32,7 +35,7 @@ export function createImageIO({
     const image = new Image();
     image.decoding = "async";
     image.onload = () => {
-      if (loadToken !== session.ui.activeLoadToken) {
+      if (loadToken !== runtimeState.activeLoadToken) {
         return;
       }
 
@@ -42,6 +45,8 @@ export function createImageIO({
         width: image.naturalWidth,
         height: image.naturalHeight,
       });
+      resetViewStateForSource(viewState);
+      resetRuntimeState(runtimeState);
       renderAll();
     };
     image.src = source;
@@ -55,7 +60,7 @@ export function createImageIO({
     const loadToken = createLoadToken();
     const reader = new FileReader();
     reader.onload = () => {
-      if (loadToken !== session.ui.activeLoadToken || typeof reader.result !== "string") {
+      if (loadToken !== runtimeState.activeLoadToken || typeof reader.result !== "string") {
         return;
       }
 

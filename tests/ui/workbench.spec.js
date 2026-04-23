@@ -7,6 +7,17 @@ async function openWorkbench(page) {
   await expect(page.locator("#resultCanvas")).toBeVisible();
 }
 
+async function expectInViewport(page, locator) {
+  await expect(locator).toBeVisible();
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+
+  const viewport = page.viewportSize();
+  expect(viewport).not.toBeNull();
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+}
+
 test("loads the demo image and renders session summary", async ({ page }) => {
   await openWorkbench(page);
 
@@ -79,6 +90,48 @@ test("adjustments tool updates session summary and supports undo", async ({ page
   await page.locator("#undoBtn").click();
   await expect(page.locator("#transformMeta")).not.toContainText("灰度");
   await expect(page.locator("#transformMeta")).toContainText("亮度");
+});
+
+test("adjustment and appearance controls stay within the desktop viewport", async ({ page }) => {
+  await openWorkbench(page);
+
+  await page.getByRole("button", { name: "调整" }).click();
+  await page.getByRole("button", { name: "基础" }).click();
+  await expectInViewport(page, page.locator("#brightnessRange"));
+  await expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+  await page.getByRole("button", { name: "外观" }).click();
+  await expectInViewport(page, page.locator("#backgroundEnabled"));
+  await expectInViewport(page, page.locator("#cornerRadiusRange"));
+  await expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+test("appearance updates preview metadata without changing output size and supports undo", async ({
+  page,
+}) => {
+  await openWorkbench(page);
+
+  const outputMeta = page.locator("#outputMeta");
+  const beforeOutputSize = await outputMeta.textContent();
+
+  await page.getByRole("button", { name: "外观" }).click();
+  await page.locator("#backgroundEnabled").check();
+  await page.locator("#cornerRadiusRange").evaluate((element, value) => {
+    element.value = value;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  }, "24");
+  await page.locator("#borderEnabled").check();
+
+  await expect(page.locator("#transformMeta")).toContainText("背景填充");
+  await expect(page.locator("#transformMeta")).toContainText("圆角");
+  await expect(page.locator("#transformMeta")).toContainText("边框");
+  await expect(outputMeta).toHaveText(beforeOutputSize ?? "");
+  await expect(page.locator("#exportMeta")).toContainText("背景填充");
+
+  await page.locator("#undoBtn").click();
+  await expect(page.locator("#transformMeta")).not.toContainText("边框");
+  await expect(page.locator("#transformMeta")).toContainText("圆角");
+  await expect(outputMeta).toHaveText(beforeOutputSize ?? "");
 });
 
 test("resize and export settings update output metadata", async ({ page }) => {

@@ -1,4 +1,8 @@
 import {
+  APPEARANCE_LIMITS,
+  createDefaultAppearance,
+} from "../lib/appearance.js";
+import {
   ADJUSTMENT_LIMITS,
   createDefaultAdjustments,
 } from "../lib/adjustments.js";
@@ -27,8 +31,16 @@ import {
   syncResizeTargets,
   syncSessionDerivedState,
 } from "../lib/session.js";
+import { resetViewStateForSource } from "../lib/ui-state.js";
 
-export function createActions({ session, elements, renderAll, downloadCurrentResult }) {
+export function createActions({
+  session,
+  viewState,
+  runtimeState,
+  elements,
+  renderAll,
+  downloadCurrentResult,
+}) {
   function getMinimumCropRatios() {
     const oriented = getOrientedSourceSize(session);
     return {
@@ -42,10 +54,10 @@ export function createActions({ session, elements, renderAll, downloadCurrentRes
       return;
     }
 
-    const before = createSnapshot(session);
+    const before = createSnapshot(session, viewState);
     mutator();
     syncSessionDerivedState(session, { forceResizeTargets });
-    const after = createSnapshot(session);
+    const after = createSnapshot(session, viewState);
     invalidateCachesForSnapshotChange(session, before, after);
     commitSnapshot(session, before, after);
     renderAll({ previewMode });
@@ -239,6 +251,51 @@ export function createActions({ session, elements, renderAll, downloadCurrentRes
         session.pipeline.adjustments = createDefaultAdjustments();
       });
     },
+    setAppearanceBackgroundEnabled(enabled) {
+      applyTrackedChange(() => {
+        session.pipeline.appearance.backgroundColor = enabled
+          ? session.pipeline.appearance.backgroundColor || "#f8fafc"
+          : null;
+      });
+    },
+    setAppearanceBackgroundColor(value) {
+      applyTrackedChange(() => {
+        session.pipeline.appearance.backgroundColor = value;
+      });
+    },
+    setAppearanceCornerRadius(value) {
+      applyTrackedChange(() => {
+        session.pipeline.appearance.cornerRadius = Math.min(
+          APPEARANCE_LIMITS.cornerRadius.max,
+          Math.max(0, Number(value) || 0)
+        );
+      });
+    },
+    setAppearanceBorderEnabled(enabled) {
+      applyTrackedChange(() => {
+        session.pipeline.appearance.borderWidth = enabled
+          ? Math.max(1, Number(session.pipeline.appearance.borderWidth) || 1)
+          : 0;
+      });
+    },
+    setAppearanceBorderWidth(value) {
+      applyTrackedChange(() => {
+        session.pipeline.appearance.borderWidth = Math.min(
+          APPEARANCE_LIMITS.borderWidth.max,
+          Math.max(0, Number(value) || 0)
+        );
+      });
+    },
+    setAppearanceBorderColor(value) {
+      applyTrackedChange(() => {
+        session.pipeline.appearance.borderColor = value;
+      });
+    },
+    resetAppearance() {
+      applyTrackedChange(() => {
+        session.pipeline.appearance = createDefaultAppearance();
+      });
+    },
     download() {
       void downloadCurrentResult();
     },
@@ -250,36 +307,39 @@ export function createActions({ session, elements, renderAll, downloadCurrentRes
         return;
       }
 
-      const before = createSnapshot(session);
+      const before = createSnapshot(session, viewState);
+      resetViewStateForSource(viewState);
       session.pipeline = createDefaultPipeline();
       session.exportOptions = createDefaultExportOptions(session.source.name);
       syncSessionDerivedState(session, { forceResizeTargets: true });
-      const after = createSnapshot(session);
+      runtimeState.drag = null;
+      runtimeState.pendingHistorySnapshot = null;
+      const after = createSnapshot(session, viewState);
       invalidateCachesForSnapshotChange(session, before, after);
       commitSnapshot(session, before, after);
       renderAll();
     });
 
     elements.undoBtn.addEventListener("click", () => {
-      const before = createSnapshot(session);
-      if (!undo(session)) {
+      const before = createSnapshot(session, viewState);
+      if (!undo(session, viewState)) {
         return;
       }
 
       syncSessionDerivedState(session);
-      const after = createSnapshot(session);
+      const after = createSnapshot(session, viewState);
       invalidateCachesForSnapshotChange(session, before, after);
       renderAll();
     });
 
     elements.redoBtn.addEventListener("click", () => {
-      const before = createSnapshot(session);
-      if (!redo(session)) {
+      const before = createSnapshot(session, viewState);
+      if (!redo(session, viewState)) {
         return;
       }
 
       syncSessionDerivedState(session);
-      const after = createSnapshot(session);
+      const after = createSnapshot(session, viewState);
       invalidateCachesForSnapshotChange(session, before, after);
       renderAll();
     });

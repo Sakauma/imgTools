@@ -5,13 +5,13 @@ const port = Number(process.env.PLAYWRIGHT_PORT || 4173);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`;
 
 export default defineConfig({
-  testDir: "./tests/ui",
-  timeout: 30_000,
+  testDir: "./tests/perf",
+  timeout: 120_000,
   expect: {
-    timeout: 5_000,
+    timeout: 10_000,
   },
   fullyParallel: false,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL,
@@ -19,7 +19,7 @@ export default defineConfig({
       width: 1280,
       height: 900,
     },
-    trace: "on-first-retry",
+    trace: "retain-on-failure",
   },
   webServer: shouldStartWebServer
     ? {

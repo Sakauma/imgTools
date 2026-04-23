@@ -3,8 +3,8 @@ import { EXPORT_FORMATS, isQualityAdjustable } from "../lib/export.js";
 export const exportTool = {
   id: "export",
   label: "导出",
-  hint: "最终输出遵循：旋转/翻转 → 裁剪 → 尺寸调整 → 图像调整 → 编码。",
-  render(root, session, actions, derived) {
+  hint: "最终输出遵循：旋转/翻转 → 裁剪 → 尺寸调整 → 图像调整 → 外观 → 编码。",
+  render(root, session, viewState, actions, derived) {
     const canAdjustQuality = isQualityAdjustable(session.exportOptions.format);
 
     root.innerHTML = `

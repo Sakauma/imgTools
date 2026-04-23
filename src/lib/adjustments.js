@@ -254,17 +254,52 @@ function createCanvasLike(sourceCanvas) {
   return canvas;
 }
 
-function applyBlurToCanvas(sourceCanvas, radius) {
-  if (radius <= 0) {
+function applyCanvasFilter(sourceCanvas, filterValue) {
+  if (!filterValue) {
     return sourceCanvas;
   }
 
   const canvas = createCanvasLike(sourceCanvas);
   const context = canvas.getContext("2d");
-  context.filter = `blur(${radius}px)`;
+  context.filter = filterValue;
   context.drawImage(sourceCanvas, 0, 0);
   context.filter = "none";
   return canvas;
+}
+
+function buildPreColorFilter(adjustments) {
+  const filters = [];
+
+  if (adjustments.brightness !== 0) {
+    filters.push(`brightness(${100 + adjustments.brightness}%)`);
+  }
+  if (adjustments.contrast !== 0) {
+    filters.push(`contrast(${100 + adjustments.contrast}%)`);
+  }
+  if (adjustments.saturation !== 0) {
+    filters.push(`saturate(${100 + adjustments.saturation}%)`);
+  }
+
+  return filters.join(" ");
+}
+
+function buildPostColorFilter(adjustments) {
+  const filters = [];
+
+  if (adjustments.grayscale) {
+    filters.push("grayscale(100%)");
+  }
+  if (adjustments.sepia) {
+    filters.push("sepia(100%)");
+  }
+  if (adjustments.invert) {
+    filters.push("invert(100%)");
+  }
+  if (adjustments.blur > 0) {
+    filters.push(`blur(${adjustments.blur}px)`);
+  }
+
+  return filters.join(" ");
 }
 
 export function applyAdjustmentsToCanvas(sourceCanvas, adjustments = {}) {
@@ -273,42 +308,44 @@ export function applyAdjustmentsToCanvas(sourceCanvas, adjustments = {}) {
     return sourceCanvas;
   }
 
-  const canvas = createCanvasLike(sourceCanvas);
-  const context = canvas.getContext("2d");
-  context.drawImage(sourceCanvas, 0, 0);
+  let workingCanvas = sourceCanvas;
+  const preColorFilter = buildPreColorFilter(normalized);
+  if (preColorFilter) {
+    workingCanvas = applyCanvasFilter(workingCanvas, preColorFilter);
+  }
 
-  const hasColorAdjustments =
-    normalized.brightness !== 0 ||
-    normalized.contrast !== 0 ||
-    normalized.saturation !== 0 ||
-    normalized.temperature !== 0 ||
-    normalized.tint !== 0 ||
-    normalized.grayscale ||
-    normalized.sepia ||
-    normalized.invert;
-
-  if (hasColorAdjustments) {
+  if (normalized.temperature !== 0 || normalized.tint !== 0) {
+    const canvas = createCanvasLike(workingCanvas);
+    const context = canvas.getContext("2d");
+    context.drawImage(workingCanvas, 0, 0);
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    const nextPixels = applyColorAdjustmentsToPixels(imageData.data, normalized);
+    const nextPixels = applyColorAdjustmentsToPixels(imageData.data, {
+      temperature: normalized.temperature,
+      tint: normalized.tint,
+    });
     imageData.data.set(nextPixels);
     context.putImageData(imageData, 0, 0);
+    workingCanvas = canvas;
   }
 
-  const blurredCanvas = normalized.blur > 0 ? applyBlurToCanvas(canvas, normalized.blur) : canvas;
+  const postColorFilter = buildPostColorFilter(normalized);
+  if (postColorFilter) {
+    workingCanvas = applyCanvasFilter(workingCanvas, postColorFilter);
+  }
 
   if (normalized.sharpen === 0) {
-    return blurredCanvas;
+    return workingCanvas;
   }
 
-  const sharpenContext = blurredCanvas.getContext("2d");
-  const imageData = sharpenContext.getImageData(0, 0, blurredCanvas.width, blurredCanvas.height);
+  const sharpenContext = workingCanvas.getContext("2d");
+  const imageData = sharpenContext.getImageData(0, 0, workingCanvas.width, workingCanvas.height);
   const nextPixels = applySharpenToPixels(
     imageData.data,
-    blurredCanvas.width,
-    blurredCanvas.height,
+    workingCanvas.width,
+    workingCanvas.height,
     normalized.sharpen
   );
   imageData.data.set(nextPixels);
   sharpenContext.putImageData(imageData, 0, 0);
-  return blurredCanvas;
+  return workingCanvas;
 }

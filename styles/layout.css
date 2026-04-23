@@ -1,0 +1,133 @@
+.app-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  height: 100dvh;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.topbar,
+.canvas-column,
+.inspector,
+.tools-panel,
+.editor-panel,
+.result-panel {
+  min-width: 0;
+}
+
+.topbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.95fr) minmax(420px, 1.15fr);
+  gap: 18px;
+  align-items: center;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.brand-block {
+  display: grid;
+  gap: 6px;
+}
+
+.topbar-controls,
+.source-stack,
+.canvas-column,
+.inspector,
+.tool-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 420px);
+  gap: 16px;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.canvas-column,
+.inspector {
+  min-height: 0;
+}
+
+.editor-panel {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+}
+
+.tools-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  align-content: start;
+}
+
+.tool-panel {
+  min-height: 0;
+  margin-top: 2px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+
+.inspector {
+  grid-template-rows: minmax(0, 1fr) 196px;
+  align-content: stretch;
+}
+
+.result-panel {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  align-content: start;
+  overflow: auto;
+}
+
+@media (max-width: 1180px) {
+  .topbar,
+  .workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell {
+    height: auto;
+    grid-template-rows: none;
+  }
+
+  .workbench,
+  .canvas-column,
+  .inspector,
+  .editor-panel,
+  .tools-panel,
+  .tool-panel {
+    min-height: auto;
+  }
+
+  .inspector {
+    grid-template-rows: none;
+  }
+
+  .tool-panel {
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .result-panel {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    gap: 16px;
+    padding: 14px;
+  }
+}

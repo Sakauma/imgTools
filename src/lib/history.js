@@ -5,9 +5,9 @@ export function createHistoryState() {
   };
 }
 
-export function createSnapshot(session) {
+export function createSnapshot(session, viewState) {
   return structuredClone({
-    activeTool: session.activeTool,
+    activeTool: viewState.activeTool,
     pipeline: session.pipeline,
     exportOptions: session.exportOptions,
   });
@@ -17,13 +17,13 @@ function snapshotsEqual(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-export function restoreSnapshot(session, snapshot) {
-  session.activeTool = snapshot.activeTool;
+export function restoreSnapshot(session, viewState, snapshot) {
+  viewState.activeTool = snapshot.activeTool;
   session.pipeline = structuredClone(snapshot.pipeline);
   session.exportOptions = structuredClone(snapshot.exportOptions);
 }
 
-export function commitSnapshot(session, beforeSnapshot, afterSnapshot = createSnapshot(session)) {
+export function commitSnapshot(session, beforeSnapshot, afterSnapshot) {
   if (snapshotsEqual(beforeSnapshot, afterSnapshot)) {
     return false;
   }
@@ -37,24 +37,24 @@ export function commitSnapshot(session, beforeSnapshot, afterSnapshot = createSn
   return true;
 }
 
-export function undo(session) {
+export function undo(session, viewState) {
   const previous = session.history.undoStack.pop();
   if (!previous) {
     return false;
   }
 
-  session.history.redoStack.push(createSnapshot(session));
-  restoreSnapshot(session, previous);
+  session.history.redoStack.push(createSnapshot(session, viewState));
+  restoreSnapshot(session, viewState, previous);
   return true;
 }
 
-export function redo(session) {
+export function redo(session, viewState) {
   const next = session.history.redoStack.pop();
   if (!next) {
     return false;
   }
 
-  session.history.undoStack.push(createSnapshot(session));
-  restoreSnapshot(session, next);
+  session.history.undoStack.push(createSnapshot(session, viewState));
+  restoreSnapshot(session, viewState, next);
   return true;
 }

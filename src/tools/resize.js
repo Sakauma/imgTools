@@ -2,7 +2,7 @@ export const resizeTool = {
   id: "resize",
   label: "尺寸",
   hint: "基于裁剪结果调整最终输出宽高。",
-  render(root, session, actions, derived) {
+  render(root, session, viewState, actions, derived) {
     root.innerHTML = `
       <label class="toggle-line">
         <span>启用尺寸调整</span>

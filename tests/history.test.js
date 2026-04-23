@@ -11,7 +11,6 @@ import {
 
 function createSession() {
   return {
-    activeTool: "crop",
     pipeline: {
       orientation: {
         rotateQuarterTurns: 0,
@@ -40,23 +39,31 @@ function createSession() {
   };
 }
 
+function createViewState() {
+  return {
+    activeTool: "crop",
+  };
+}
+
 test("commitSnapshot records previous state and clears redo history", () => {
   const session = createSession();
-  const before = createSnapshot(session);
+  const viewState = createViewState();
+  const before = createSnapshot(session, viewState);
   session.pipeline.orientation.rotateQuarterTurns = 1;
-  commitSnapshot(session, before);
+  commitSnapshot(session, before, createSnapshot(session, viewState));
   assert.equal(session.history.undoStack.length, 1);
   assert.equal(session.history.redoStack.length, 0);
 });
 
 test("undo and redo restore snapshots", () => {
   const session = createSession();
-  const before = createSnapshot(session);
+  const viewState = createViewState();
+  const before = createSnapshot(session, viewState);
   session.pipeline.orientation.rotateQuarterTurns = 1;
-  commitSnapshot(session, before);
+  commitSnapshot(session, before, createSnapshot(session, viewState));
 
-  assert.equal(undo(session), true);
+  assert.equal(undo(session, viewState), true);
   assert.equal(session.pipeline.orientation.rotateQuarterTurns, 0);
-  assert.equal(redo(session), true);
+  assert.equal(redo(session, viewState), true);
   assert.equal(session.pipeline.orientation.rotateQuarterTurns, 1);
 });

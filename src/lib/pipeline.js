@@ -1,3 +1,4 @@
+import { applyAppearanceToCanvas } from "./appearance.js";
 import { applyAdjustmentsToCanvas } from "./adjustments.js";
 import { fitInsideBox, getDisplayCropRect, getOrientedSize, getPixelCropRect } from "./geometry.js";
 import { getOutputSize } from "./export.js";
@@ -120,7 +121,8 @@ export function buildOutputCanvas(session) {
     outputSize.height
   );
 
-  const finalCanvas = applyAdjustmentsToCanvas(outputCanvas, session.pipeline.adjustments);
+  const adjustedCanvas = applyAdjustmentsToCanvas(outputCanvas, session.pipeline.adjustments);
+  const finalCanvas = applyAppearanceToCanvas(adjustedCanvas, session.pipeline.appearance);
   const outputMeta = {
     cropSize: { width: cropRect.width, height: cropRect.height },
     outputSize,

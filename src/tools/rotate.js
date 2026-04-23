@@ -2,7 +2,7 @@ export const rotateTool = {
   id: "rotate",
   label: "旋转",
   hint: "旋转和翻转总是在裁剪之前应用。",
-  render(root, session, actions) {
+  render(root, session, viewState, actions) {
     const rotation = session.pipeline.orientation.rotateQuarterTurns * 90;
     root.innerHTML = `
       <div class="button-row">

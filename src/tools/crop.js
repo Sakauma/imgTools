@@ -13,7 +13,7 @@ export const cropTool = {
   id: "crop",
   label: "裁剪",
   hint: "拖动裁剪框内部可移动，拖四角可缩放。",
-  render(root, session, actions) {
+  render(root, session, viewState, actions) {
     root.innerHTML = `
       <div class="tool-section">
         <span>裁剪比例</span>

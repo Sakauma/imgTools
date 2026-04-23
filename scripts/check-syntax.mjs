@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 const roots = ["src", "tests", "scripts"];
-const rootFiles = ["playwright.config.js"];
+const rootFiles = ["playwright.config.js", "playwright.perf.config.js"];
 
 async function collectJavaScriptFiles(root) {
   const entries = await readdir(root, { withFileTypes: true });

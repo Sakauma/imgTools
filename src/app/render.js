@@ -1,3 +1,4 @@
+import { getAppearanceSummary, hasActiveAppearance } from "../lib/appearance.js";
 import { getAdjustmentSummary, hasActiveAdjustments } from "../lib/adjustments.js";
 import { getDisplayCropRect } from "../lib/geometry.js";
 import { getFormatConfig, getOutputSize, isQualityAdjustable } from "../lib/export.js";
@@ -8,7 +9,14 @@ import { toolMap, tools } from "../tools/index.js";
 const RESULT_PREVIEW_MAX_SIZE = 420;
 const DRAG_PREVIEW_INTERVAL = 90;
 
-export function createRenderer({ session, elements, getActions, window = globalThis.window }) {
+export function createRenderer({
+  session,
+  viewState,
+  runtimeState,
+  elements,
+  getActions,
+  window = globalThis.window,
+}) {
   function getDerivedData() {
     if (!session.source) {
       return {
@@ -28,23 +36,23 @@ export function createRenderer({ session, elements, getActions, window = globalT
   }
 
   function cancelPreviewThrottle() {
-    if (!session.ui.previewThrottleId) {
+    if (!runtimeState.previewThrottleId) {
       return;
     }
 
-    window.clearTimeout(session.ui.previewThrottleId);
-    session.ui.previewThrottleId = 0;
+    window.clearTimeout(runtimeState.previewThrottleId);
+    runtimeState.previewThrottleId = 0;
   }
 
   function queuePreviewFrame() {
-    if (session.ui.previewRenderId) {
+    if (runtimeState.previewRenderId) {
       return;
     }
 
-    session.ui.previewRenderId = window.requestAnimationFrame(() => {
-      session.ui.previewRenderId = 0;
+    runtimeState.previewRenderId = window.requestAnimationFrame(() => {
+      runtimeState.previewRenderId = 0;
       renderResultNow();
-      session.ui.lastPreviewAt = performance.now();
+      runtimeState.lastPreviewAt = performance.now();
     });
   }
 
@@ -59,18 +67,18 @@ export function createRenderer({ session, elements, getActions, window = globalT
       return;
     }
 
-    const elapsed = performance.now() - session.ui.lastPreviewAt;
+    const elapsed = performance.now() - runtimeState.lastPreviewAt;
     if (elapsed >= DRAG_PREVIEW_INTERVAL) {
       queuePreviewFrame();
       return;
     }
 
-    if (session.ui.previewThrottleId) {
+    if (runtimeState.previewThrottleId) {
       return;
     }
 
-    session.ui.previewThrottleId = window.setTimeout(() => {
-      session.ui.previewThrottleId = 0;
+    runtimeState.previewThrottleId = window.setTimeout(() => {
+      runtimeState.previewThrottleId = 0;
       queuePreviewFrame();
     }, Math.max(DRAG_PREVIEW_INTERVAL - elapsed, 16));
   }
@@ -79,7 +87,7 @@ export function createRenderer({ session, elements, getActions, window = globalT
     elements.toolTabs.innerHTML = tools
       .map(
         (tool) => `
-          <button class="tool-tab${session.activeTool === tool.id ? " is-active" : ""}" type="button" data-tool-id="${tool.id}" aria-pressed="${session.activeTool === tool.id}">
+          <button class="tool-tab${viewState.activeTool === tool.id ? " is-active" : ""}" type="button" data-tool-id="${tool.id}" aria-pressed="${viewState.activeTool === tool.id}">
             ${tool.label}
           </button>
         `
@@ -88,19 +96,19 @@ export function createRenderer({ session, elements, getActions, window = globalT
 
     elements.toolTabs.querySelectorAll("[data-tool-id]").forEach((button) => {
       button.addEventListener("click", () => {
-        session.activeTool = button.dataset.toolId;
+        viewState.activeTool = button.dataset.toolId;
         renderChrome();
       });
     });
   }
 
   function renderToolPanel() {
-    const tool = toolMap.get(session.activeTool) ?? tools[0];
-    tool.render(elements.toolPanel, session, getActions(), getDerivedData());
+    const tool = toolMap.get(viewState.activeTool) ?? tools[0];
+    tool.render(elements.toolPanel, session, viewState, getActions(), getDerivedData());
   }
 
   function renderWorkspaceHeader() {
-    const tool = toolMap.get(session.activeTool) ?? tools[0];
+    const tool = toolMap.get(viewState.activeTool) ?? tools[0];
     elements.activeToolLabel.textContent = tool.label;
     elements.toolHint.textContent = tool.hint;
   }
@@ -132,6 +140,9 @@ export function createRenderer({ session, elements, getActions, window = globalT
     if (hasActiveAdjustments(session.pipeline.adjustments)) {
       bits.push(getAdjustmentSummary(session.pipeline.adjustments));
     }
+    if (hasActiveAppearance(session.pipeline.appearance)) {
+      bits.push(getAppearanceSummary(session.pipeline.appearance));
+    }
     return bits.length > 0 ? bits.join(" · ") : "仅裁剪";
   }
 
@@ -152,7 +163,7 @@ export function createRenderer({ session, elements, getActions, window = globalT
   }
 
   function renderCropOverlay() {
-    const showCrop = Boolean(session.source && session.activeTool === "crop" && session.ui.stageMetrics);
+    const showCrop = Boolean(session.source && viewState.activeTool === "crop" && runtimeState.stageMetrics);
     elements.cropBox.hidden = !showCrop;
 
     if (!showCrop) {
@@ -161,8 +172,8 @@ export function createRenderer({ session, elements, getActions, window = globalT
 
     const displayRect = getDisplayCropRect(
       session.pipeline.crop.rect,
-      session.ui.stageMetrics.displayWidth,
-      session.ui.stageMetrics.displayHeight
+      runtimeState.stageMetrics.displayWidth,
+      runtimeState.stageMetrics.displayHeight
     );
 
     elements.cropBox.style.transform = `translate3d(${displayRect.x}px, ${displayRect.y}px, 0)`;
@@ -175,7 +186,7 @@ export function createRenderer({ session, elements, getActions, window = globalT
       elements.emptyState.hidden = false;
       elements.stageShell.hidden = true;
       elements.cropBox.hidden = true;
-      session.ui.stageMetrics = null;
+      runtimeState.stageMetrics = null;
       return;
     }
 
@@ -187,7 +198,7 @@ export function createRenderer({ session, elements, getActions, window = globalT
       viewportBounds.height
     );
 
-    session.ui.stageMetrics = metrics;
+    runtimeState.stageMetrics = metrics;
     elements.emptyState.hidden = true;
     elements.stageShell.hidden = false;
     elements.stageShell.style.width = `${metrics.displayWidth}px`;
@@ -214,9 +225,12 @@ export function createRenderer({ session, elements, getActions, window = globalT
     const qualityPart = isQualityAdjustable(session.exportOptions.format)
       ? ` · 质量 ${Math.round(session.exportOptions.quality * 100)}%`
       : " · 原始质量";
+    const appearancePart = hasActiveAppearance(session.pipeline.appearance)
+      ? ` · ${getAppearanceSummary(session.pipeline.appearance)}`
+      : "";
     elements.resultCanvas.hidden = false;
     elements.resultEmptyState.hidden = true;
-    elements.exportMeta.textContent = `${format.label} · ${preview.outputSize.width} × ${preview.outputSize.height}px${qualityPart}`;
+    elements.exportMeta.textContent = `${format.label} · ${preview.outputSize.width} × ${preview.outputSize.height}px${qualityPart}${appearancePart}`;
   }
 
   function renderChrome() {

@@ -30,11 +30,15 @@ jobs:
           set -euo pipefail
           test -f index.html
           test -f styles.css
+          test -d styles
           test -f package.json
           test -f src/main.js
           test -f README.md
           test -f demo.svg
           test -f playwright.config.js
+          test -f playwright.perf.config.js
+          test -f tests/ui/workbench.spec.js
+          test -f tests/perf/workbench.perf.spec.js
 
       - name: Install dependencies
         run: npm ci
@@ -50,3 +54,6 @@ jobs:
 
       - name: Run UI tests
         run: npm run test:ui
+
+      - name: Run performance smoke tests
+        run: npm run test:perf

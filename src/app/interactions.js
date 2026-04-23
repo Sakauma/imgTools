@@ -9,6 +9,8 @@ import {
 
 export function setupInteractions({
   session,
+  viewState,
+  runtimeState,
   elements,
   loadSelectedFile,
   renderCropOverlay,
@@ -38,11 +40,11 @@ export function setupInteractions({
     session.pipeline.crop.rect = nextRect;
     syncSessionDerivedState(session);
     invalidateOutputCache(session);
-    if (session.ui.stageMetrics) {
-      session.ui.stageMetrics.cropDisplayRect = getDisplayCropRect(
+    if (runtimeState.stageMetrics) {
+      runtimeState.stageMetrics.cropDisplayRect = getDisplayCropRect(
         session.pipeline.crop.rect,
-        session.ui.stageMetrics.displayWidth,
-        session.ui.stageMetrics.displayHeight
+        runtimeState.stageMetrics.displayWidth,
+        runtimeState.stageMetrics.displayHeight
       );
     }
     renderCropOverlay();
@@ -51,23 +53,23 @@ export function setupInteractions({
   }
 
   function beginCropDrag(event) {
-    if (!session.source || session.activeTool !== "crop" || elements.cropBox.hidden) {
+    if (!session.source || viewState.activeTool !== "crop" || elements.cropBox.hidden) {
       return;
     }
 
     const handle = event.target.dataset.handle;
     const point = getStagePoint(event.clientX, event.clientY);
-    const displayRect = session.ui.stageMetrics.cropDisplayRect;
+    const displayRect = runtimeState.stageMetrics.cropDisplayRect;
 
-    session.ui.pendingHistorySnapshot = createSnapshot(session);
+    runtimeState.pendingHistorySnapshot = createSnapshot(session, viewState);
     if (handle) {
-      session.ui.drag = {
+      runtimeState.drag = {
         type: "resize",
         handle,
         origin: structuredClone(session.pipeline.crop.rect),
       };
     } else {
-      session.ui.drag = {
+      runtimeState.drag = {
         type: "move",
         offsetX: point.x - displayRect.x,
         offsetY: point.y - displayRect.y,
@@ -80,7 +82,7 @@ export function setupInteractions({
   }
 
   function resizeCropFreely(handle, point) {
-    const origin = session.ui.drag.origin;
+    const origin = runtimeState.drag.origin;
     let left = origin.x;
     let top = origin.y;
     let right = origin.x + origin.width;
@@ -108,7 +110,7 @@ export function setupInteractions({
   }
 
   function resizeCropWithRatio(handle, point, ratio) {
-    const origin = session.ui.drag.origin;
+    const origin = runtimeState.drag.origin;
     let anchorX = origin.x;
     let anchorY = origin.y;
     let horizontal = 1;
@@ -161,28 +163,28 @@ export function setupInteractions({
   }
 
   function onPointerMove(event) {
-    if (!session.ui.drag || !session.ui.stageMetrics) {
+    if (!runtimeState.drag || !runtimeState.stageMetrics) {
       return;
     }
 
     const point = getStagePoint(event.clientX, event.clientY);
     const normalizedPoint = {
-      x: point.x / session.ui.stageMetrics.displayWidth,
-      y: point.y / session.ui.stageMetrics.displayHeight,
+      x: point.x / runtimeState.stageMetrics.displayWidth,
+      y: point.y / runtimeState.stageMetrics.displayHeight,
     };
 
-    if (session.ui.drag.type === "move") {
+    if (runtimeState.drag.type === "move") {
       const displayRect = getDisplayCropRect(
-        session.ui.drag.origin,
-        session.ui.stageMetrics.displayWidth,
-        session.ui.stageMetrics.displayHeight
+        runtimeState.drag.origin,
+        runtimeState.stageMetrics.displayWidth,
+        runtimeState.stageMetrics.displayHeight
       );
-      const width = displayRect.width / session.ui.stageMetrics.displayWidth;
-      const height = displayRect.height / session.ui.stageMetrics.displayHeight;
+      const width = displayRect.width / runtimeState.stageMetrics.displayWidth;
+      const height = displayRect.height / runtimeState.stageMetrics.displayHeight;
       setCropRect(
         {
-          x: (point.x - session.ui.drag.offsetX) / session.ui.stageMetrics.displayWidth,
-          y: (point.y - session.ui.drag.offsetY) / session.ui.stageMetrics.displayHeight,
+          x: (point.x - runtimeState.drag.offsetX) / runtimeState.stageMetrics.displayWidth,
+          y: (point.y - runtimeState.drag.offsetY) / runtimeState.stageMetrics.displayHeight,
           width,
           height,
         },
@@ -193,20 +195,19 @@ export function setupInteractions({
 
     const lockedRatio = getLockedCropRatio(session);
     if (lockedRatio) {
-      setCropRect(
-        resizeCropWithRatio(session.ui.drag.handle, normalizedPoint, lockedRatio),
-        { previewMode: "throttled" }
-      );
+      setCropRect(resizeCropWithRatio(runtimeState.drag.handle, normalizedPoint, lockedRatio), {
+        previewMode: "throttled",
+      });
       return;
     }
 
-    setCropRect(resizeCropFreely(session.ui.drag.handle, normalizedPoint), {
+    setCropRect(resizeCropFreely(runtimeState.drag.handle, normalizedPoint), {
       previewMode: "throttled",
     });
   }
 
   function finishDrag(event) {
-    if (!session.ui.drag) {
+    if (!runtimeState.drag) {
       return;
     }
 
@@ -214,10 +215,10 @@ export function setupInteractions({
       elements.cropBox.releasePointerCapture(event.pointerId);
     }
 
-    const before = session.ui.pendingHistorySnapshot;
-    const after = createSnapshot(session);
-    session.ui.drag = null;
-    session.ui.pendingHistorySnapshot = null;
+    const before = runtimeState.pendingHistorySnapshot;
+    const after = createSnapshot(session, viewState);
+    runtimeState.drag = null;
+    runtimeState.pendingHistorySnapshot = null;
 
     if (before) {
       commitSnapshot(session, before, after);
@@ -229,7 +230,7 @@ export function setupInteractions({
 
   function handleFileDrop(event) {
     event.preventDefault();
-    session.ui.dropDepth = 0;
+    runtimeState.dropDepth = 0;
     elements.viewport.classList.remove("drag-over");
 
     const file = [...(event.dataTransfer?.files || [])].find((item) =>
@@ -241,7 +242,7 @@ export function setupInteractions({
   elements.cropBox.addEventListener("pointerdown", beginCropDrag);
   elements.viewport.addEventListener("dragenter", (event) => {
     event.preventDefault();
-    session.ui.dropDepth += 1;
+    runtimeState.dropDepth += 1;
     elements.viewport.classList.add("drag-over");
   });
   elements.viewport.addEventListener("dragover", (event) => {
@@ -249,8 +250,8 @@ export function setupInteractions({
     elements.viewport.classList.add("drag-over");
   });
   elements.viewport.addEventListener("dragleave", () => {
-    session.ui.dropDepth = Math.max(0, session.ui.dropDepth - 1);
-    if (session.ui.dropDepth === 0) {
+    runtimeState.dropDepth = Math.max(0, runtimeState.dropDepth - 1);
+    if (runtimeState.dropDepth === 0) {
       elements.viewport.classList.remove("drag-over");
     }
   });

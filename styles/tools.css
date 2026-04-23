@@ -1,0 +1,104 @@
+.tool-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.subtool-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tool-tab,
+.ratio-chip,
+.action-button {
+  width: auto;
+}
+
+.tool-tab,
+.ratio-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  background: var(--panel-soft);
+}
+
+.tool-tab.is-active,
+.ratio-chip.is-active,
+.primary-button,
+.action-button.is-accent {
+  border-color: rgba(37, 99, 235, 0.24);
+  background: var(--accent);
+  color: #fff;
+}
+
+.subtool-tab {
+  min-height: 38px;
+  padding: 8px 10px;
+  font-weight: 700;
+  background: var(--panel-soft);
+}
+
+.subtool-tab.is-active {
+  border-color: rgba(37, 99, 235, 0.24);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.primary-button {
+  font-weight: 800;
+}
+
+.button-row button:first-child:not(:only-child) {
+  background: var(--panel-soft);
+}
+
+.ratio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ratio-chip {
+  min-width: 68px;
+}
+
+.tool-section {
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.tool-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tool-card {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-soft);
+}
+
+.tool-card > span {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.toggle-grid {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 760px) {
+  .tool-tabs,
+  .subtool-tabs,
+  .tool-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}

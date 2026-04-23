@@ -1,3 +1,4 @@
+import { createDefaultAppearance, normalizeAppearance } from "./appearance.js";
 import {
   DEFAULT_CROP_SCALE,
   MIN_CROP_SIZE,
@@ -33,6 +34,7 @@ export function createDefaultPipeline() {
       keepAspectRatio: true,
     },
     adjustments: createDefaultAdjustments(),
+    appearance: createDefaultAppearance(),
   };
 }
 
@@ -68,6 +70,7 @@ export function getPixelPipelineState(pipeline) {
           enabled: false,
         },
     adjustments: normalizeAdjustments(pipeline.adjustments),
+    appearance: normalizeAppearance(pipeline.appearance),
   };
 }
 
@@ -88,21 +91,9 @@ export function hasPixelPipelineChanged(leftSnapshot, rightSnapshot) {
 export function createEditorSession() {
   return {
     source: null,
-    activeTool: "crop",
     pipeline: createDefaultPipeline(),
     exportOptions: createDefaultExportOptions("imgtools-output"),
     history: createHistoryState(),
-    ui: {
-      dropDepth: 0,
-      drag: null,
-      pendingHistorySnapshot: null,
-      activeLoadToken: 0,
-      adjustmentSection: "basic",
-      stageMetrics: null,
-      previewRenderId: 0,
-      previewThrottleId: 0,
-      lastPreviewAt: 0,
-    },
     cache: {
       orientedKey: "",
       orientedCanvas: null,
@@ -242,6 +233,7 @@ export function syncSessionDerivedState(session, { forceResizeTargets = false } 
     ratio: getLockedCropRatio(session),
   });
   session.pipeline.adjustments = normalizeAdjustments(session.pipeline.adjustments);
+  session.pipeline.appearance = normalizeAppearance(session.pipeline.appearance);
   session.exportOptions.quality = clampQuality(session.exportOptions.quality);
   syncResizeTargets(session, { force: forceResizeTargets });
 }
@@ -254,17 +246,9 @@ export function resetSessionForSource(session, { image, name, width, height }) {
     height,
     token: `${Date.now()}-${Math.random()}`,
   };
-  session.activeTool = "crop";
   session.pipeline = createDefaultPipeline();
   session.exportOptions = createDefaultExportOptions(name);
   session.history = createHistoryState();
-  session.ui.dropDepth = 0;
-  session.ui.drag = null;
-  session.ui.pendingHistorySnapshot = null;
-  session.ui.stageMetrics = null;
-  session.ui.previewRenderId = 0;
-  session.ui.previewThrottleId = 0;
-  session.ui.lastPreviewAt = 0;
   invalidateDerivedCaches(session);
   syncSessionDerivedState(session, { forceResizeTargets: true });
 }

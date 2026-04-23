@@ -121,12 +121,12 @@ export const adjustmentsTool = {
   id: "adjustments",
   label: "调整",
   hint: "图像调整总是在旋转、裁剪和尺寸调整之后应用，并直接影响导出结果。",
-  render(root, session, actions) {
+  render(root, session, viewState, actions) {
     const adjustments = normalizeAdjustments(session.pipeline.adjustments);
-    const activeSection = SECTION_OPTIONS.some((option) => option.value === session.ui.adjustmentSection)
-      ? session.ui.adjustmentSection
+    const activeSection = SECTION_OPTIONS.some((option) => option.value === viewState.adjustmentSection)
+      ? viewState.adjustmentSection
       : "basic";
-    session.ui.adjustmentSection = activeSection;
+    viewState.adjustmentSection = activeSection;
 
     root.innerHTML = `
       <div class="subtool-tabs" aria-label="调整分组">
@@ -153,8 +153,8 @@ export const adjustmentsTool = {
 
     root.querySelectorAll("[data-adjustment-section]").forEach((button) => {
       button.addEventListener("click", () => {
-        session.ui.adjustmentSection = button.dataset.adjustmentSection;
-        adjustmentsTool.render(root, session, actions);
+        viewState.adjustmentSection = button.dataset.adjustmentSection;
+        adjustmentsTool.render(root, session, viewState, actions);
       });
     });
 
