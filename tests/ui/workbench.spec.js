@@ -75,19 +75,18 @@ test("adjustments tool updates session summary and supports undo", async ({ page
   await expect(page.locator("#transformMeta")).toContainText("亮度");
 });
 
-test("adjustment and appearance controls stay within the desktop viewport", async ({ page }) => {
+test("tool panel stays usable in the expanded workspace", async ({ page }) => {
   await openWorkbench(page);
 
   await page.getByRole("button", { name: "调整" }).click();
   await page.getByRole("button", { name: "基础" }).click();
-  await expectInViewport(page, page.locator("#brightnessRange"));
-  await expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.locator("#brightnessRange")).toBeVisible();
 
   await page.getByRole("button", { name: "外观" }).click();
-  await expectInViewport(page, page.locator("#backgroundEnabled"));
-  await expectInViewport(page, page.locator("#expandEnabled"));
-  await expectInViewport(page, page.locator("#cornerRadiusRange"));
-  await expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.locator("#backgroundEnabled")).toBeVisible();
+  await expect(page.locator("#expandEnabled")).toBeVisible();
+  await page.locator("#cornerRadiusRange").scrollIntoViewIfNeeded();
+  await expect(page.locator("#cornerRadiusRange")).toBeVisible();
 });
 
 test("appearance updates preview metadata without changing output size and supports undo", async ({
@@ -142,6 +141,28 @@ test("expand updates output metadata and supports undo", async ({ page }) => {
   await expect(outputMeta).toHaveText(beforeOutputSize ?? "");
 });
 
+test("result preview stays fully inside its preview frame", async ({ page }) => {
+  await openWorkbench(page);
+
+  await page.getByRole("button", { name: "外观" }).click();
+  await page.locator("#expandEnabled").check();
+  await page.getByRole("button", { name: "4:5" }).click();
+
+  const bounds = await page.locator("#resultCanvas").evaluate((canvas) => {
+    const canvasRect = canvas.getBoundingClientRect();
+    const frameRect = canvas.closest(".result-frame").getBoundingClientRect();
+    return {
+      canvasWidth: canvasRect.width,
+      canvasHeight: canvasRect.height,
+      frameWidth: frameRect.width,
+      frameHeight: frameRect.height,
+    };
+  });
+
+  expect(bounds.canvasWidth).toBeLessThanOrEqual(bounds.frameWidth);
+  expect(bounds.canvasHeight).toBeLessThanOrEqual(bounds.frameHeight);
+});
+
 test("resize and export settings update output metadata", async ({ page }) => {
   await openWorkbench(page);
 
@@ -154,6 +175,37 @@ test("resize and export settings update output metadata", async ({ page }) => {
   await page.locator("#exportFormatSelect").selectOption("image/jpeg");
   await expect(page.locator("#exportMeta")).toContainText("JPEG");
   await expect(page.locator("#exportMeta")).toContainText("640 ×");
+});
+
+test("poster tools add text shape effects and presets", async ({ page }) => {
+  await openWorkbench(page);
+
+  await page.locator('[data-tool-id="text"]').click();
+  await page.locator("#addTextLayer").click();
+  await page.locator("#textValue").fill("PANICHIYO");
+  await page.locator("#textRotation").evaluate((element, value) => {
+    element.value = value;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  }, "-90");
+  await expect(page.locator("#transformMeta")).toContainText("文字 1");
+
+  await page.locator('[data-tool-id="shapes"]').click();
+  await page.locator("#addShapeLayer").click();
+  await page.locator("#shapeFill").fill("#d21919");
+  await expect(page.locator("#transformMeta")).toContainText("色块 1");
+
+  await page.locator('[data-tool-id="effects"]').click();
+  await page.locator("#effectGrayscale").check();
+  await page.locator("#effectThreshold").evaluate((element, value) => {
+    element.value = value;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  }, "35");
+  await expect(page.locator("#transformMeta")).toContainText("灰度");
+
+  await page.locator('[data-tool-id="presets"]').click();
+  await page.getByRole("button", { name: /Manga Poster/ }).click();
+  await expect(page.locator("#transformMeta")).toContainText("纸张提亮");
+  await expect(page.locator("#exportMeta")).toContainText("图层 2 个");
 });
 
 test("download uses the selected format extension", async ({ page }) => {

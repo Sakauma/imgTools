@@ -61,3 +61,23 @@ test("output cache key changes when expand settings change", () => {
 
   assert.notEqual(getOutputCacheKey(session), before);
 });
+
+test("output cache key changes when poster effects or layers change", () => {
+  const session = createEditorSession();
+  resetSessionForSource(session, {
+    image: createStubImage(1600, 900),
+    name: "demo.png",
+    width: 1600,
+    height: 900,
+  });
+
+  const before = getOutputCacheKey(session);
+  session.pipeline.effects.grayscale = true;
+  syncSessionDerivedState(session);
+  const afterEffects = getOutputCacheKey(session);
+  session.pipeline.layers.push({ id: "title", type: "text", text: "PANIC" });
+  syncSessionDerivedState(session);
+
+  assert.notEqual(afterEffects, before);
+  assert.notEqual(getOutputCacheKey(session), afterEffects);
+});

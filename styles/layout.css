@@ -1,7 +1,11 @@
 .app-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(520px, 0.86fr);
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 12px;
+  grid-template-areas:
+    "topbar inspector"
+    "canvas inspector";
+  gap: 16px;
   height: 100dvh;
   max-width: 1480px;
   margin: 0 auto;
@@ -18,9 +22,10 @@
 }
 
 .topbar {
+  grid-area: topbar;
   display: grid;
-  grid-template-columns: minmax(260px, 0.95fr) minmax(420px, 1.15fr);
-  gap: 18px;
+  grid-template-columns: minmax(210px, 0.82fr) minmax(0, 1fr);
+  gap: 16px;
   align-items: center;
   padding-top: 12px;
   padding-bottom: 12px;
@@ -40,13 +45,13 @@
   gap: 12px;
 }
 
+.topbar-controls,
+.source-stack {
+  min-width: 0;
+}
+
 .workbench {
-  display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 420px);
-  grid-template-areas: "canvas inspector";
-  gap: 16px;
-  min-height: 0;
-  align-items: stretch;
+  display: contents;
 }
 
 .canvas-column,
@@ -85,7 +90,9 @@
 
 .inspector {
   grid-area: inspector;
-  grid-template-rows: minmax(0, 1fr) minmax(260px, 30vh);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(250px, 30vh);
   align-content: stretch;
 }
 
@@ -96,7 +103,8 @@
   gap: 12px;
   min-height: 0;
   align-content: stretch;
-  overflow: hidden;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .result-panel .section-head {
@@ -113,20 +121,18 @@
 }
 
 @media (max-width: 1180px) {
-  .topbar,
-  .workbench {
+  .topbar {
     grid-template-columns: 1fr;
-  }
-
-  .workbench {
-    grid-template-areas:
-      "canvas"
-      "inspector";
   }
 
   .app-shell {
     height: auto;
+    grid-template-columns: 1fr;
     grid-template-rows: none;
+    grid-template-areas:
+      "topbar"
+      "canvas"
+      "inspector";
   }
 
   .workbench,
@@ -139,6 +145,7 @@
   }
 
   .inspector {
+    grid-template-columns: 1fr;
     grid-template-rows: none;
   }
 
@@ -172,6 +179,14 @@
 
   .workbench {
     grid-template-areas:
+      "topbar"
+      "inspector"
+      "canvas";
+  }
+
+  .app-shell {
+    grid-template-areas:
+      "topbar"
       "inspector"
       "canvas";
   }

@@ -1,10 +1,12 @@
 import { getAppearanceSummary, hasActiveAppearance } from "../lib/appearance.js";
 import { getAdjustmentSummary, hasActiveAdjustments } from "../lib/adjustments.js";
+import { getEffectsSummary, hasActiveEffects } from "../lib/effects.js";
 import { getExpandSummary, getExpandedSize, hasActiveExpand } from "../lib/expand.js";
 import { getDisplayCropRect } from "../lib/geometry.js";
 import { getFormatConfig, getOutputSize, isQualityAdjustable } from "../lib/export.js";
 import { renderResultPreview, renderStageCanvas } from "../lib/pipeline.js";
 import { getCropBaseSize } from "../lib/session.js";
+import { getLayerSummary, normalizeLayers } from "../lib/layers.js";
 import { toolMap, tools } from "../tools/index.js";
 
 const RESULT_PREVIEW_MAX_SIZE = 420;
@@ -151,6 +153,12 @@ export function createRenderer({
     if (hasActiveAppearance(session.pipeline.appearance)) {
       bits.push(getAppearanceSummary(session.pipeline.appearance));
     }
+    if (hasActiveEffects(session.pipeline.effects)) {
+      bits.push(getEffectsSummary(session.pipeline.effects));
+    }
+    if (normalizeLayers(session.pipeline.layers).length > 0) {
+      bits.push(getLayerSummary(session.pipeline.layers));
+    }
     return bits.length > 0 ? bits.join(" · ") : "仅裁剪";
   }
 
@@ -222,7 +230,12 @@ export function createRenderer({
       return;
     }
 
-    const preview = renderResultPreview(session, elements.resultCanvas, RESULT_PREVIEW_MAX_SIZE);
+    const frameBounds = elements.resultFrame.getBoundingClientRect();
+    const previewMaxSize = {
+      width: Math.max(96, Math.min(RESULT_PREVIEW_MAX_SIZE, frameBounds.width - 20)),
+      height: Math.max(96, Math.min(RESULT_PREVIEW_MAX_SIZE, frameBounds.height - 20)),
+    };
+    const preview = renderResultPreview(session, elements.resultCanvas, previewMaxSize);
     if (!preview) {
       elements.resultCanvas.hidden = true;
       elements.resultEmptyState.hidden = false;
@@ -240,9 +253,15 @@ export function createRenderer({
     const appearancePart = hasActiveAppearance(session.pipeline.appearance)
       ? ` · ${getAppearanceSummary(session.pipeline.appearance)}`
       : "";
+    const effectsPart = hasActiveEffects(session.pipeline.effects)
+      ? ` · ${getEffectsSummary(session.pipeline.effects)}`
+      : "";
+    const layersPart = normalizeLayers(session.pipeline.layers).length
+      ? ` · ${getLayerSummary(session.pipeline.layers)}`
+      : "";
     elements.resultCanvas.hidden = false;
     elements.resultEmptyState.hidden = true;
-    elements.exportMeta.textContent = `${format.label} · ${preview.outputSize.width} × ${preview.outputSize.height}px${qualityPart}${expandPart}${appearancePart}`;
+    elements.exportMeta.textContent = `${format.label} · ${preview.outputSize.width} × ${preview.outputSize.height}px${qualityPart}${expandPart}${appearancePart}${effectsPart}${layersPart}`;
   }
 
   function renderChrome() {

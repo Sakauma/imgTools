@@ -9,8 +9,10 @@ import {
   getPixelCropRect,
 } from "./geometry.js";
 import { createDefaultAdjustments, normalizeAdjustments } from "./adjustments.js";
+import { createDefaultEffects, normalizeEffects } from "./effects.js";
 import { clampQuality, getBaseFileName, getOutputSize } from "./export.js";
 import { createHistoryState } from "./history.js";
+import { normalizeLayers } from "./layers.js";
 
 function serializeState(value) {
   return JSON.stringify(value);
@@ -37,6 +39,8 @@ export function createDefaultPipeline() {
     adjustments: createDefaultAdjustments(),
     expand: createDefaultExpand(),
     appearance: createDefaultAppearance(),
+    layers: [],
+    effects: createDefaultEffects(),
   };
 }
 
@@ -74,6 +78,8 @@ export function getPixelPipelineState(pipeline) {
     adjustments: normalizeAdjustments(pipeline.adjustments),
     expand: normalizeExpand(pipeline.expand),
     appearance: normalizeAppearance(pipeline.appearance),
+    layers: normalizeLayers(pipeline.layers),
+    effects: normalizeEffects(pipeline.effects),
   };
 }
 
@@ -248,6 +254,8 @@ export function syncSessionDerivedState(session, { forceResizeTargets = false } 
   session.pipeline.adjustments = normalizeAdjustments(session.pipeline.adjustments);
   session.pipeline.expand = normalizeExpand(session.pipeline.expand);
   session.pipeline.appearance = normalizeAppearance(session.pipeline.appearance);
+  session.pipeline.layers = normalizeLayers(session.pipeline.layers);
+  session.pipeline.effects = normalizeEffects(session.pipeline.effects);
   session.exportOptions.quality = clampQuality(session.exportOptions.quality);
   syncResizeTargets(session, { force: forceResizeTargets });
 }

@@ -14,6 +14,7 @@ export function collectElements(doc) {
     cropBox: doc.querySelector("#cropBox"),
     activeToolLabel: doc.querySelector("#activeToolLabel"),
     toolHint: doc.querySelector("#toolHint"),
+    resultFrame: doc.querySelector(".result-frame"),
     resultCanvas: doc.querySelector("#resultCanvas"),
     resultEmptyState: doc.querySelector("#resultEmptyState"),
     exportMeta: doc.querySelector("#exportMeta"),

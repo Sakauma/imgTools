@@ -38,6 +38,12 @@ jobs:
           test -f playwright.config.js
           test -f playwright.perf.config.js
           test -f scripts/serve-static.mjs
+          test -f src/lib/layers.js
+          test -f src/lib/effects.js
+          test -f src/lib/presets.js
+          test -f tests/layers.test.js
+          test -f tests/effects.test.js
+          test -f tests/presets.test.js
           test -f tests/ui/workbench.spec.js
           test -f tests/ui/mobile.spec.js
           test -f tests/ui/visual.spec.js

@@ -2,6 +2,7 @@ export function createViewState() {
   return {
     activeTool: "crop",
     adjustmentSection: "basic",
+    selectedLayerId: null,
   };
 }
 
@@ -21,6 +22,7 @@ export function createRuntimeState() {
 export function resetViewStateForSource(viewState) {
   viewState.activeTool = "crop";
   viewState.adjustmentSection = "basic";
+  viewState.selectedLayerId = null;
 }
 
 export function resetRuntimeState(runtimeState) {

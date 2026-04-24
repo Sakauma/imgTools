@@ -36,7 +36,7 @@
 }
 
 .toolbar-actions {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 input,
@@ -49,7 +49,7 @@ button {
   padding: 10px 12px;
   font: inherit;
   color: var(--ink);
-  background: #fff;
+  background: #fbfaff;
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease,
@@ -61,8 +61,8 @@ input:focus,
 select:focus,
 button:focus {
   outline: none;
-  border-color: rgba(37, 99, 235, 0.55);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+  border-color: var(--focus);
+  box-shadow: 0 0 0 4px var(--focus-soft);
 }
 
 button {
@@ -99,7 +99,7 @@ input::file-selector-button {
   padding: 8px 12px;
   font: inherit;
   font-weight: 700;
-  color: #fff;
+  color: #fbfaff;
   background: var(--accent);
 }
 
@@ -128,7 +128,7 @@ input::file-selector-button {
   color: var(--muted);
 }
 
-@media (max-width: 1180px) {
+@media (min-width: 1181px) {
   .toolbar-actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

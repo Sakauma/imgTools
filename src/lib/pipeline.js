@@ -1,8 +1,10 @@
 import { applyAppearanceToCanvas } from "./appearance.js";
 import { applyAdjustmentsToCanvas } from "./adjustments.js";
+import { applyPosterEffectsToCanvas } from "./effects.js";
 import { applyExpandToCanvas } from "./expand.js";
 import { fitInsideBox, getDisplayCropRect, getOrientedSize, getPixelCropRect } from "./geometry.js";
 import { getOutputSize } from "./export.js";
+import { renderLayersToCanvas } from "./layers.js";
 import { getOrientationCacheKey, getOutputCacheKey } from "./session.js";
 
 function createCanvas(width, height) {
@@ -124,12 +126,14 @@ export function buildOutputCanvas(session) {
   );
 
   const adjustedCanvas = applyAdjustmentsToCanvas(outputCanvas, session.pipeline.adjustments);
+  const effectedCanvas = applyPosterEffectsToCanvas(adjustedCanvas, session.pipeline.effects);
   const expandedCanvas = applyExpandToCanvas(
-    adjustedCanvas,
+    effectedCanvas,
     session.pipeline.expand,
     session.pipeline.appearance.backgroundColor
   );
-  const finalCanvas = applyAppearanceToCanvas(expandedCanvas, session.pipeline.appearance);
+  const appearanceCanvas = applyAppearanceToCanvas(expandedCanvas, session.pipeline.appearance);
+  const finalCanvas = renderLayersToCanvas(appearanceCanvas, session.pipeline.layers);
   const outputSize = { width: finalCanvas.width, height: finalCanvas.height };
   const outputMeta = {
     cropSize: { width: cropRect.width, height: cropRect.height },
@@ -155,11 +159,15 @@ export function renderResultPreview(session, canvas, maxPreviewSize = 420) {
     return null;
   }
 
+  const previewBounds = typeof maxPreviewSize === "number"
+    ? { width: maxPreviewSize, height: maxPreviewSize }
+    : maxPreviewSize;
+
   const previewSize = fitInsideBox(
     output.outputSize.width,
     output.outputSize.height,
-    maxPreviewSize,
-    maxPreviewSize
+    previewBounds.width,
+    previewBounds.height
   );
 
   canvas.width = previewSize.width;

@@ -117,3 +117,43 @@ test("24MP desktop expand smoke", async ({ page }, testInfo) => {
     contentType: "application/json",
   });
 });
+
+test("24MP desktop poster layers and effects smoke", async ({ page }, testInfo) => {
+  await page.goto("/");
+
+  await page.locator("#imageInput").setInputFiles({
+    name: "perf-24mp-poster.svg",
+    mimeType: "image/svg+xml",
+    buffer: Buffer.from(buildLargeSvgFixture()),
+  });
+
+  await expect(page.locator("#sourceMeta")).toHaveText("6000 × 4000px");
+  const timings = {};
+
+  await page.locator('[data-tool-id="presets"]').click();
+  let startedAt = Date.now();
+  await page.getByRole("button", { name: /Manga Poster/ }).click();
+  await waitForPreviewFlush(page);
+  timings.posterPresetMs = Date.now() - startedAt;
+
+  await page.locator('[data-tool-id="text"]').click();
+  await page.locator("#addTextLayer").click();
+  await page.locator('[data-tool-id="shapes"]').click();
+  await page.locator("#addShapeLayer").click();
+  await waitForPreviewFlush(page);
+  await expect(page.locator("#transformMeta")).toContainText("图层 2 个");
+
+  const downloadPromise = page.waitForEvent("download");
+  startedAt = Date.now();
+  await page.locator('[data-tool-id="export"]').click();
+  await page.getByRole("button", { name: "下载导出结果" }).click();
+  const download = await downloadPromise;
+  timings.posterExportMs = Date.now() - startedAt;
+
+  expect(download.suggestedFilename()).toBe("perf-24mp-poster.png");
+  console.log(`PERF ${JSON.stringify(timings)}`);
+  await testInfo.attach("perf-poster-timings", {
+    body: JSON.stringify(timings, null, 2),
+    contentType: "application/json",
+  });
+});

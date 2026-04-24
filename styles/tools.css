@@ -1,7 +1,9 @@
 .tool-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  overflow-x: auto;
   gap: 6px;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
 }
 
 .subtool-tabs {
@@ -14,6 +16,11 @@
 .ratio-chip,
 .action-button {
   width: auto;
+}
+
+.tool-tab {
+  flex: 0 0 auto;
+  min-width: 92px;
 }
 
 .tool-tab,
@@ -29,9 +36,9 @@
 .ratio-chip.is-active,
 .primary-button,
 .action-button.is-accent {
-  border-color: rgba(37, 99, 235, 0.24);
+  border-color: var(--focus);
   background: var(--accent);
-  color: #fff;
+  color: #fbfaff;
 }
 
 .subtool-tab {
@@ -42,7 +49,7 @@
 }
 
 .subtool-tab.is-active {
-  border-color: rgba(37, 99, 235, 0.24);
+  border-color: var(--focus);
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
@@ -73,7 +80,7 @@
 
 .tool-layout-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -95,8 +102,65 @@
   gap: 8px;
 }
 
+textarea {
+  width: 100%;
+  min-height: 86px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--ink);
+  background: #fbfaff;
+}
+
+.layer-list,
+.preset-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.preset-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.layer-row,
+.preset-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: auto;
+  text-align: left;
+  background: var(--panel-soft);
+}
+
+.layer-row.is-active {
+  border-color: var(--focus);
+  background: var(--accent-soft);
+}
+
+.layer-row span[style] {
+  width: 28px;
+  height: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+}
+
+.preset-card {
+  display: grid;
+  justify-items: start;
+}
+
+.preset-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 760px) {
-  .tool-layout-grid {
+  .tool-layout-grid,
+  .preset-grid {
     grid-template-columns: 1fr;
   }
 }
