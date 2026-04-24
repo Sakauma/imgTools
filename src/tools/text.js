@@ -1,4 +1,6 @@
 import { BLEND_MODES, normalizeLayers } from "../lib/layers.js";
+import { escapeAttribute, escapeHtml } from "../lib/html.js";
+import { bindCheckbox, bindClick, bindInput, bindRange, bindSelect } from "./bindings.js";
 
 function textLayers(session) {
   return normalizeLayers(session.pipeline.layers).filter((layer) => layer.type === "text");
@@ -32,7 +34,7 @@ export const textTool = {
       <div class="layer-list">
         ${layers.map((item) => `
           <button type="button" class="layer-row${item.id === layer?.id ? " is-active" : ""}" data-layer-id="${item.id}">
-            <span>${item.text || "文字层"}</span>
+            <span>${escapeHtml(item.text || "文字层")}</span>
             <strong>${Math.round(item.rotation)}°</strong>
           </button>
         `).join("") || `<p class="muted-copy">还没有文字层。添加一个竖排标题开始排版。</p>`}
@@ -40,8 +42,8 @@ export const textTool = {
       ${layer ? `
         <div class="tool-section tool-card">
           <span>内容</span>
-          <textarea id="textValue" rows="3">${layer.text}</textarea>
-          <label class="field field-compact"><span>字体</span><input id="fontFamily" value="${layer.fontFamily}" /></label>
+          <textarea id="textValue" rows="3">${escapeHtml(layer.text)}</textarea>
+          <label class="field field-compact"><span>字体</span><input id="fontFamily" value="${escapeAttribute(layer.fontFamily)}" /></label>
           <div class="field-group two-col">
             <label class="field field-compact"><span>颜色</span><input id="textColor" type="color" value="${layer.color}" /></label>
             <label class="field field-compact"><span>混合</span><select id="textBlend">${BLEND_MODES.map((mode) => option(mode, mode, layer.blendMode)).join("")}</select></label>
@@ -59,22 +61,22 @@ export const textTool = {
       <div class="tool-summary">${layers.length} 个文字层 · 竖向效果可用旋转 -90° 实现</div>
     `;
 
-    root.querySelector("#addTextLayer").addEventListener("click", actions.addTextLayer);
-    root.querySelector("#deleteTextLayer")?.addEventListener("click", () => actions.deleteLayer(layer.id));
+    bindClick(root, "#addTextLayer", actions.addTextLayer);
+    bindClick(root, "#deleteTextLayer", () => actions.deleteLayer(layer.id));
     root.querySelectorAll("[data-layer-id]").forEach((button) => {
       button.addEventListener("click", () => actions.selectLayer(button.dataset.layerId));
     });
     if (!layer) return;
     const update = (patch) => actions.updateLayer(layer.id, patch);
-    root.querySelector("#textValue").addEventListener("input", (event) => update({ text: event.target.value }));
-    root.querySelector("#fontFamily").addEventListener("input", (event) => update({ fontFamily: event.target.value }));
-    root.querySelector("#textColor").addEventListener("input", (event) => update({ color: event.target.value }));
-    root.querySelector("#textBlend").addEventListener("change", (event) => update({ blendMode: event.target.value }));
-    root.querySelector("#fontSize").addEventListener("input", (event) => update({ fontSize: Number(event.target.value) }));
-    root.querySelector("#textRotation").addEventListener("input", (event) => update({ rotation: Number(event.target.value) }));
-    root.querySelector("#textX").addEventListener("input", (event) => update({ x: Number(event.target.value) }));
-    root.querySelector("#textY").addEventListener("input", (event) => update({ y: Number(event.target.value) }));
-    root.querySelector("#textOpacity").addEventListener("input", (event) => update({ opacity: Number(event.target.value) }));
-    root.querySelector("#textItalic").addEventListener("change", (event) => update({ italic: event.target.checked }));
+    bindInput(root, "#textValue", (text) => update({ text }));
+    bindInput(root, "#fontFamily", (fontFamily) => update({ fontFamily }));
+    bindInput(root, "#textColor", (color) => update({ color }));
+    bindSelect(root, "#textBlend", (blendMode) => update({ blendMode }));
+    bindRange(root, "#fontSize", (fontSize) => update({ fontSize }));
+    bindRange(root, "#textRotation", (rotation) => update({ rotation }));
+    bindRange(root, "#textX", (x) => update({ x }));
+    bindRange(root, "#textY", (y) => update({ y }));
+    bindRange(root, "#textOpacity", (opacity) => update({ opacity }));
+    bindCheckbox(root, "#textItalic", (italic) => update({ italic }));
   },
 };

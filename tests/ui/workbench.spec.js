@@ -208,6 +208,46 @@ test("poster tools add text shape effects and presets", async ({ page }) => {
   await expect(page.locator("#exportMeta")).toContainText("图层 2 个");
 });
 
+test("canvas preview shows processed effects outside crop mode", async ({ page }) => {
+  await openWorkbench(page);
+
+  const beforeSize = await page.locator("#stageCanvas").evaluate((canvas) => ({
+    width: canvas.width,
+    height: canvas.height,
+  }));
+
+  await page.locator('[data-tool-id="presets"]').click();
+  await page.getByRole("button", { name: /Manga Poster/ }).click();
+
+  await expect(page.locator("#activeToolLabel")).toHaveText("预设");
+  await expect(page.locator("#cropBox")).toBeHidden();
+  const afterSize = await page.locator("#stageCanvas").evaluate((canvas) => ({
+    width: canvas.width,
+    height: canvas.height,
+  }));
+
+  expect(afterSize.width).toBeGreaterThan(0);
+  expect(afterSize.height).toBeGreaterThan(0);
+  expect(afterSize.width / afterSize.height).toBeCloseTo(beforeSize.width / beforeSize.height, 1);
+  await expect(page.locator("#transformMeta")).toContainText("纸张提亮");
+});
+
+test("text layer content is rendered as text instead of html", async ({ page }) => {
+  await openWorkbench(page);
+
+  await page.locator('[data-tool-id="text"]').click();
+  await page.locator("#addTextLayer").click();
+  await page.locator("#textValue").fill('<img src=x onerror="window.__xss = true">');
+  await expect(page.locator(".layer-row")).toContainText("<img src=x");
+
+  const injected = await page.evaluate(() => ({
+    imageCount: document.querySelectorAll(".layer-row img").length,
+    flag: window.__xss === true,
+  }));
+  expect(injected.imageCount).toBe(0);
+  expect(injected.flag).toBe(false);
+});
+
 test("download uses the selected format extension", async ({ page }) => {
   await openWorkbench(page);
 

@@ -1,4 +1,5 @@
 import { EFFECT_LIMITS, getEffectsSummary, normalizeEffects } from "../lib/effects.js";
+import { bindCheckbox, bindClick, bindRange } from "./bindings.js";
 
 function slider(id, label, value, limits) {
   return `
@@ -35,7 +36,7 @@ export const effectsTool = {
       <div class="tool-summary">${getEffectsSummary(effects)}</div>
     `;
 
-    root.querySelector("#effectGrayscale").addEventListener("change", (event) => actions.setEffectToggle("grayscale", event.target.checked));
+    bindCheckbox(root, "#effectGrayscale", (enabled) => actions.setEffectToggle("grayscale", enabled));
     [
       ["#effectThreshold", "threshold"],
       ["#effectPaperLift", "paperLift"],
@@ -44,8 +45,8 @@ export const effectsTool = {
       ["#effectPaperTexture", "paperTexture"],
       ["#effectHalftone", "halftone"],
     ].forEach(([selector, key]) => {
-      root.querySelector(selector).addEventListener("input", (event) => actions.setEffectValue(key, event.target.value));
+      bindRange(root, selector, (value) => actions.setEffectValue(key, value));
     });
-    root.querySelector("#resetEffects").addEventListener("click", actions.resetEffects);
+    bindClick(root, "#resetEffects", actions.resetEffects);
   },
 };

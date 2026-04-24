@@ -1,4 +1,6 @@
 import { BLEND_MODES, normalizeLayers } from "../lib/layers.js";
+import { escapeAttribute } from "../lib/html.js";
+import { bindClick, bindInput, bindRange, bindSelect } from "./bindings.js";
 
 function shapeLayers(session) {
   return normalizeLayers(session.pipeline.layers).filter((layer) => layer.type === "shape");
@@ -28,7 +30,7 @@ export const shapesTool = {
       <div class="layer-list">
         ${layers.map((item) => `
           <button type="button" class="layer-row${item.id === layer?.id ? " is-active" : ""}" data-layer-id="${item.id}">
-            <span style="background:${item.fillColor}"></span>
+            <span style="background:${escapeAttribute(item.fillColor)}"></span>
             <strong>${Math.round(item.rotation)}° · ${item.blendMode}</strong>
           </button>
         `).join("") || `<p class="muted-copy">还没有色块层。添加一个红色矩形开始叠加。</p>`}
@@ -50,22 +52,22 @@ export const shapesTool = {
       <div class="tool-summary">${layers.length} 个色块层 · 支持 multiply / overlay 等混合模式</div>
     `;
 
-    root.querySelector("#addShapeLayer").addEventListener("click", actions.addShapeLayer);
-    root.querySelector("#deleteShapeLayer")?.addEventListener("click", () => actions.deleteLayer(layer.id));
+    bindClick(root, "#addShapeLayer", actions.addShapeLayer);
+    bindClick(root, "#deleteShapeLayer", () => actions.deleteLayer(layer.id));
     root.querySelectorAll("[data-layer-id]").forEach((button) => {
       button.addEventListener("click", () => actions.selectLayer(button.dataset.layerId));
     });
     if (!layer) return;
     const update = (patch) => actions.updateLayer(layer.id, patch);
-    root.querySelector("#shapeFill").addEventListener("input", (event) => update({ fillColor: event.target.value }));
-    root.querySelector("#shapeStroke").addEventListener("input", (event) => update({ strokeColor: event.target.value }));
-    root.querySelector("#shapeBlend").addEventListener("change", (event) => update({ blendMode: event.target.value }));
-    root.querySelector("#shapeStrokeWidth").addEventListener("input", (event) => update({ strokeWidth: Number(event.target.value) }));
-    root.querySelector("#shapeX").addEventListener("input", (event) => update({ x: Number(event.target.value) }));
-    root.querySelector("#shapeY").addEventListener("input", (event) => update({ y: Number(event.target.value) }));
-    root.querySelector("#shapeWidth").addEventListener("input", (event) => update({ width: Number(event.target.value) }));
-    root.querySelector("#shapeHeight").addEventListener("input", (event) => update({ height: Number(event.target.value) }));
-    root.querySelector("#shapeRotation").addEventListener("input", (event) => update({ rotation: Number(event.target.value) }));
-    root.querySelector("#shapeOpacity").addEventListener("input", (event) => update({ opacity: Number(event.target.value) }));
+    bindInput(root, "#shapeFill", (fillColor) => update({ fillColor }));
+    bindInput(root, "#shapeStroke", (strokeColor) => update({ strokeColor }));
+    bindSelect(root, "#shapeBlend", (blendMode) => update({ blendMode }));
+    bindRange(root, "#shapeStrokeWidth", (strokeWidth) => update({ strokeWidth }));
+    bindRange(root, "#shapeX", (x) => update({ x }));
+    bindRange(root, "#shapeY", (y) => update({ y }));
+    bindRange(root, "#shapeWidth", (width) => update({ width }));
+    bindRange(root, "#shapeHeight", (height) => update({ height }));
+    bindRange(root, "#shapeRotation", (rotation) => update({ rotation }));
+    bindRange(root, "#shapeOpacity", (opacity) => update({ opacity }));
   },
 };

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildOutputCanvas } from "../src/lib/pipeline.js";
+import { buildOutputCanvas, buildPreviewCanvas } from "../src/lib/pipeline.js";
 import { createEditorSession, resetSessionForSource } from "../src/lib/session.js";
 
 function createStubContext() {
@@ -67,6 +67,29 @@ test("buildOutputCanvas reports final expanded canvas size separately from conte
     const cached = buildOutputCanvas(session);
     assert.deepEqual(cached.contentSize, result.contentSize);
     assert.deepEqual(cached.outputSize, result.outputSize);
+  } finally {
+    restoreDocument();
+  }
+});
+
+test("buildPreviewCanvas uses a smaller canvas while preserving full output metadata", () => {
+  const restoreDocument = installCanvasStub();
+  try {
+    const session = createEditorSession();
+    resetSessionForSource(session, {
+      image: { width: 1600, height: 900 },
+      name: "wide.png",
+      width: 1600,
+      height: 900,
+    });
+    session.pipeline.crop.rect = { x: 0, y: 0, width: 1, height: 1 };
+
+    const result = buildPreviewCanvas(session, { width: 320, height: 180 });
+
+    assert.equal(result.outputSize.width, 1600);
+    assert.equal(result.outputSize.height, 900);
+    assert.equal(result.canvas.width, 320);
+    assert.equal(result.canvas.height, 180);
   } finally {
     restoreDocument();
   }

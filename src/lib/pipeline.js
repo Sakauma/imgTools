@@ -1,7 +1,7 @@
 import { applyAppearanceToCanvas } from "./appearance.js";
 import { applyAdjustmentsToCanvas } from "./adjustments.js";
 import { applyPosterEffectsToCanvas } from "./effects.js";
-import { applyExpandToCanvas } from "./expand.js";
+import { applyExpandToCanvas, getExpandedSize } from "./expand.js";
 import { fitInsideBox, getDisplayCropRect, getOrientedSize, getPixelCropRect } from "./geometry.js";
 import { getOutputSize } from "./export.js";
 import { renderLayersToCanvas } from "./layers.js";
@@ -12,6 +12,60 @@ function createCanvas(width, height) {
   canvas.width = width;
   canvas.height = height;
   return canvas;
+}
+
+function scaleForPreview(value, scale) {
+  return Math.max(0, Math.round((Number(value) || 0) * scale));
+}
+
+function scalePipelineForPreview(pipeline, scale) {
+  return {
+    ...pipeline,
+    appearance: {
+      ...pipeline.appearance,
+      cornerRadius: scaleForPreview(pipeline.appearance.cornerRadius, scale),
+      borderWidth: scaleForPreview(pipeline.appearance.borderWidth, scale),
+    },
+    layers: pipeline.layers.map((layer) => ({
+      ...layer,
+      fontSize: layer.type === "text" ? scaleForPreview(layer.fontSize, scale) : layer.fontSize,
+      strokeWidth: layer.type === "shape" ? scaleForPreview(layer.strokeWidth, scale) : layer.strokeWidth,
+    })),
+  };
+}
+
+function renderPipelineFromCrop(session, cropRect, contentSize, pipeline = session.pipeline) {
+  const orientedCanvas = getOrientedCanvas(session);
+  if (!orientedCanvas) {
+    return null;
+  }
+
+  const outputCanvas = createCanvas(contentSize.width, contentSize.height);
+  const context = outputCanvas.getContext("2d");
+
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(
+    orientedCanvas,
+    cropRect.x,
+    cropRect.y,
+    cropRect.width,
+    cropRect.height,
+    0,
+    0,
+    contentSize.width,
+    contentSize.height
+  );
+
+  const adjustedCanvas = applyAdjustmentsToCanvas(outputCanvas, pipeline.adjustments);
+  const effectedCanvas = applyPosterEffectsToCanvas(adjustedCanvas, pipeline.effects);
+  const expandedCanvas = applyExpandToCanvas(
+    effectedCanvas,
+    pipeline.expand,
+    pipeline.appearance.backgroundColor
+  );
+  const appearanceCanvas = applyAppearanceToCanvas(expandedCanvas, pipeline.appearance);
+  return renderLayersToCanvas(appearanceCanvas, pipeline.layers);
 }
 
 export function getOrientedCanvas(session) {
@@ -48,7 +102,34 @@ export function getOrientedCanvas(session) {
   return canvas;
 }
 
-export function renderStageCanvas(session, canvas, viewportWidth, viewportHeight) {
+export function renderStageCanvas(session, canvas, viewportWidth, viewportHeight, { outputPreview = false } = {}) {
+  if (outputPreview) {
+    const preview = buildPreviewCanvas(session, {
+      width: Math.max(200, viewportWidth - 36),
+      height: Math.max(220, viewportHeight - 36),
+    });
+    if (!preview) {
+      return null;
+    }
+
+    canvas.width = preview.previewSize.width;
+    canvas.height = preview.previewSize.height;
+    canvas.style.width = `${preview.previewSize.width}px`;
+    canvas.style.height = `${preview.previewSize.height}px`;
+
+    const context = canvas.getContext("2d");
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(preview.canvas, 0, 0);
+
+    return {
+      displayWidth: preview.previewSize.width,
+      displayHeight: preview.previewSize.height,
+      cropDisplayRect: null,
+    };
+  }
+
   const orientedCanvas = getOrientedCanvas(session);
   if (!orientedCanvas) {
     return null;
@@ -71,6 +152,13 @@ export function renderStageCanvas(session, canvas, viewportWidth, viewportHeight
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
   context.drawImage(orientedCanvas, 0, 0, displaySize.width, displaySize.height);
+
+  const adjustedCanvas = applyAdjustmentsToCanvas(canvas, session.pipeline.adjustments);
+  const effectedCanvas = applyPosterEffectsToCanvas(adjustedCanvas, session.pipeline.effects);
+  if (effectedCanvas !== canvas) {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(effectedCanvas, 0, 0);
+  }
 
   return {
     displayWidth: displaySize.width,
@@ -108,32 +196,7 @@ export function buildOutputCanvas(session) {
     { width: cropRect.width, height: cropRect.height },
     session.pipeline.resize
   );
-  const outputCanvas = createCanvas(contentSize.width, contentSize.height);
-  const context = outputCanvas.getContext("2d");
-
-  context.imageSmoothingEnabled = true;
-  context.imageSmoothingQuality = "high";
-  context.drawImage(
-    orientedCanvas,
-    cropRect.x,
-    cropRect.y,
-    cropRect.width,
-    cropRect.height,
-    0,
-    0,
-    contentSize.width,
-    contentSize.height
-  );
-
-  const adjustedCanvas = applyAdjustmentsToCanvas(outputCanvas, session.pipeline.adjustments);
-  const effectedCanvas = applyPosterEffectsToCanvas(adjustedCanvas, session.pipeline.effects);
-  const expandedCanvas = applyExpandToCanvas(
-    effectedCanvas,
-    session.pipeline.expand,
-    session.pipeline.appearance.backgroundColor
-  );
-  const appearanceCanvas = applyAppearanceToCanvas(expandedCanvas, session.pipeline.appearance);
-  const finalCanvas = renderLayersToCanvas(appearanceCanvas, session.pipeline.layers);
+  const finalCanvas = renderPipelineFromCrop(session, cropRect, contentSize);
   const outputSize = { width: finalCanvas.width, height: finalCanvas.height };
   const outputMeta = {
     cropSize: { width: cropRect.width, height: cropRect.height },
@@ -153,35 +216,67 @@ export function buildOutputCanvas(session) {
   };
 }
 
-export function renderResultPreview(session, canvas, maxPreviewSize = 420) {
-  const output = buildOutputCanvas(session);
-  if (!output) {
+export function buildPreviewCanvas(session, maxPreviewSize = 420) {
+  const orientedCanvas = getOrientedCanvas(session);
+  if (!orientedCanvas) {
     return null;
   }
 
   const previewBounds = typeof maxPreviewSize === "number"
     ? { width: maxPreviewSize, height: maxPreviewSize }
     : maxPreviewSize;
-
+  const cropRect = getPixelCropRect(
+    session.pipeline.crop.rect,
+    orientedCanvas.width,
+    orientedCanvas.height
+  );
+  const contentSize = getOutputSize(
+    { width: cropRect.width, height: cropRect.height },
+    session.pipeline.resize
+  );
+  const outputSize = getExpandedSize(contentSize, session.pipeline.expand);
   const previewSize = fitInsideBox(
-    output.outputSize.width,
-    output.outputSize.height,
+    outputSize.width,
+    outputSize.height,
     previewBounds.width,
     previewBounds.height
   );
+  const previewScale = Math.min(
+    previewSize.width / outputSize.width,
+    previewSize.height / outputSize.height,
+    1
+  );
+  const previewContentSize = {
+    width: Math.max(1, Math.round(contentSize.width * previewScale)),
+    height: Math.max(1, Math.round(contentSize.height * previewScale)),
+  };
+  const previewPipeline = scalePipelineForPreview(session.pipeline, previewScale);
+  const canvas = renderPipelineFromCrop(session, cropRect, previewContentSize, previewPipeline);
 
-  canvas.width = previewSize.width;
-  canvas.height = previewSize.height;
+  return {
+    canvas,
+    cropSize: { width: cropRect.width, height: cropRect.height },
+    contentSize,
+    outputSize,
+    previewSize: { width: canvas.width, height: canvas.height },
+  };
+}
+
+export function renderResultPreview(session, canvas, maxPreviewSize = 420) {
+  const output = buildPreviewCanvas(session, maxPreviewSize);
+  if (!output) {
+    return null;
+  }
+
+  canvas.width = output.previewSize.width;
+  canvas.height = output.previewSize.height;
   canvas.hidden = false;
 
   const context = canvas.getContext("2d");
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
-  context.drawImage(output.canvas, 0, 0, previewSize.width, previewSize.height);
+  context.drawImage(output.canvas, 0, 0);
 
-  return {
-    ...output,
-    previewSize,
-  };
+  return output;
 }

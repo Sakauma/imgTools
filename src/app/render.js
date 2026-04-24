@@ -1,12 +1,9 @@
-import { getAppearanceSummary, hasActiveAppearance } from "../lib/appearance.js";
-import { getAdjustmentSummary, hasActiveAdjustments } from "../lib/adjustments.js";
-import { getEffectsSummary, hasActiveEffects } from "../lib/effects.js";
-import { getExpandSummary, getExpandedSize, hasActiveExpand } from "../lib/expand.js";
+import { getExpandedSize } from "../lib/expand.js";
 import { getDisplayCropRect } from "../lib/geometry.js";
-import { getFormatConfig, getOutputSize, isQualityAdjustable } from "../lib/export.js";
+import { getFormatConfig, getOutputSize } from "../lib/export.js";
 import { renderResultPreview, renderStageCanvas } from "../lib/pipeline.js";
 import { getCropBaseSize } from "../lib/session.js";
-import { getLayerSummary, normalizeLayers } from "../lib/layers.js";
+import { getExportSummary, getTransformSummary } from "../lib/summary.js";
 import { toolMap, tools } from "../tools/index.js";
 
 const RESULT_PREVIEW_MAX_SIZE = 420;
@@ -124,44 +121,6 @@ export function createRenderer({
     elements.redoBtn.disabled = session.history.redoStack.length === 0;
   }
 
-  function getTransformSummary() {
-    if (!session.source) {
-      return "无";
-    }
-
-    const bits = [];
-    const rotation = session.pipeline.orientation.rotateQuarterTurns * 90;
-    if (rotation) {
-      bits.push(`旋转 ${rotation}°`);
-    }
-    if (session.pipeline.orientation.flipX) {
-      bits.push("水平翻转");
-    }
-    if (session.pipeline.orientation.flipY) {
-      bits.push("垂直翻转");
-    }
-    if (session.pipeline.resize.enabled) {
-      bits.push("已调整尺寸");
-    }
-    const derived = getDerivedData();
-    if (hasActiveExpand(derived.contentSize, session.pipeline.expand)) {
-      bits.push(getExpandSummary(derived.contentSize, session.pipeline.expand));
-    }
-    if (hasActiveAdjustments(session.pipeline.adjustments)) {
-      bits.push(getAdjustmentSummary(session.pipeline.adjustments));
-    }
-    if (hasActiveAppearance(session.pipeline.appearance)) {
-      bits.push(getAppearanceSummary(session.pipeline.appearance));
-    }
-    if (hasActiveEffects(session.pipeline.effects)) {
-      bits.push(getEffectsSummary(session.pipeline.effects));
-    }
-    if (normalizeLayers(session.pipeline.layers).length > 0) {
-      bits.push(getLayerSummary(session.pipeline.layers));
-    }
-    return bits.length > 0 ? bits.join(" · ") : "仅裁剪";
-  }
-
   function renderStats() {
     if (!session.source) {
       elements.sourceMeta.textContent = "未加载";
@@ -175,7 +134,7 @@ export function createRenderer({
     elements.sourceMeta.textContent = `${session.source.width} × ${session.source.height}px`;
     elements.cropMeta.textContent = `${derived.cropSize.width} × ${derived.cropSize.height}px`;
     elements.outputMeta.textContent = `${derived.outputSize.width} × ${derived.outputSize.height}px`;
-    elements.transformMeta.textContent = getTransformSummary();
+    elements.transformMeta.textContent = getTransformSummary(session, derived);
   }
 
   function renderCropOverlay() {
@@ -207,11 +166,13 @@ export function createRenderer({
     }
 
     const viewportBounds = elements.viewport.getBoundingClientRect();
+    const outputPreview = viewState.activeTool !== "crop";
     const metrics = renderStageCanvas(
       session,
       elements.stageCanvas,
       viewportBounds.width,
-      viewportBounds.height
+      viewportBounds.height,
+      { outputPreview }
     );
 
     runtimeState.stageMetrics = metrics;
@@ -243,25 +204,10 @@ export function createRenderer({
     }
 
     const format = getFormatConfig(session.exportOptions.format);
-    const qualityPart = isQualityAdjustable(session.exportOptions.format)
-      ? ` · 质量 ${Math.round(session.exportOptions.quality * 100)}%`
-      : " · 原始质量";
     const contentSize = getOutputSize(preview.cropSize, session.pipeline.resize);
-    const expandPart = hasActiveExpand(contentSize, session.pipeline.expand)
-      ? ` · ${getExpandSummary(contentSize, session.pipeline.expand)}`
-      : "";
-    const appearancePart = hasActiveAppearance(session.pipeline.appearance)
-      ? ` · ${getAppearanceSummary(session.pipeline.appearance)}`
-      : "";
-    const effectsPart = hasActiveEffects(session.pipeline.effects)
-      ? ` · ${getEffectsSummary(session.pipeline.effects)}`
-      : "";
-    const layersPart = normalizeLayers(session.pipeline.layers).length
-      ? ` · ${getLayerSummary(session.pipeline.layers)}`
-      : "";
     elements.resultCanvas.hidden = false;
     elements.resultEmptyState.hidden = true;
-    elements.exportMeta.textContent = `${format.label} · ${preview.outputSize.width} × ${preview.outputSize.height}px${qualityPart}${expandPart}${appearancePart}${effectsPart}${layersPart}`;
+    elements.exportMeta.textContent = getExportSummary(session, preview, format, contentSize);
   }
 
   function renderChrome() {
