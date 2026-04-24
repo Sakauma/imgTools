@@ -1,5 +1,6 @@
 import { getAppearanceSummary, hasActiveAppearance } from "../lib/appearance.js";
 import { getAdjustmentSummary, hasActiveAdjustments } from "../lib/adjustments.js";
+import { getExpandSummary, getExpandedSize, hasActiveExpand } from "../lib/expand.js";
 import { getDisplayCropRect } from "../lib/geometry.js";
 import { getFormatConfig, getOutputSize, isQualityAdjustable } from "../lib/export.js";
 import { renderResultPreview, renderStageCanvas } from "../lib/pipeline.js";
@@ -21,15 +22,18 @@ export function createRenderer({
     if (!session.source) {
       return {
         cropSize: { width: 0, height: 0 },
+        contentSize: { width: 0, height: 0 },
         outputSize: { width: 0, height: 0 },
         format: getFormatConfig(session.exportOptions.format),
       };
     }
 
     const cropSize = getCropBaseSize(session);
-    const outputSize = getOutputSize(cropSize, session.pipeline.resize);
+    const contentSize = getOutputSize(cropSize, session.pipeline.resize);
+    const outputSize = getExpandedSize(contentSize, session.pipeline.expand);
     return {
       cropSize,
+      contentSize,
       outputSize,
       format: getFormatConfig(session.exportOptions.format),
     };
@@ -137,6 +141,10 @@ export function createRenderer({
     if (session.pipeline.resize.enabled) {
       bits.push("已调整尺寸");
     }
+    const derived = getDerivedData();
+    if (hasActiveExpand(derived.contentSize, session.pipeline.expand)) {
+      bits.push(getExpandSummary(derived.contentSize, session.pipeline.expand));
+    }
     if (hasActiveAdjustments(session.pipeline.adjustments)) {
       bits.push(getAdjustmentSummary(session.pipeline.adjustments));
     }
@@ -225,12 +233,16 @@ export function createRenderer({
     const qualityPart = isQualityAdjustable(session.exportOptions.format)
       ? ` · 质量 ${Math.round(session.exportOptions.quality * 100)}%`
       : " · 原始质量";
+    const contentSize = getOutputSize(preview.cropSize, session.pipeline.resize);
+    const expandPart = hasActiveExpand(contentSize, session.pipeline.expand)
+      ? ` · ${getExpandSummary(contentSize, session.pipeline.expand)}`
+      : "";
     const appearancePart = hasActiveAppearance(session.pipeline.appearance)
       ? ` · ${getAppearanceSummary(session.pipeline.appearance)}`
       : "";
     elements.resultCanvas.hidden = false;
     elements.resultEmptyState.hidden = true;
-    elements.exportMeta.textContent = `${format.label} · ${preview.outputSize.width} × ${preview.outputSize.height}px${qualityPart}${appearancePart}`;
+    elements.exportMeta.textContent = `${format.label} · ${preview.outputSize.width} × ${preview.outputSize.height}px${qualityPart}${expandPart}${appearancePart}`;
   }
 
   function renderChrome() {

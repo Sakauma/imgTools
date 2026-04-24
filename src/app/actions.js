@@ -6,6 +6,7 @@ import {
   ADJUSTMENT_LIMITS,
   createDefaultAdjustments,
 } from "../lib/adjustments.js";
+import { createDefaultExpand } from "../lib/expand.js";
 import {
   MIN_CROP_SIZE,
   constrainCropToAspect,
@@ -249,6 +250,39 @@ export function createActions({
     resetAdjustments() {
       applyTrackedChange(() => {
         session.pipeline.adjustments = createDefaultAdjustments();
+      });
+    },
+    setExpandEnabled(enabled) {
+      applyTrackedChange(() => {
+        session.pipeline.expand.enabled = Boolean(enabled);
+      });
+    },
+    setExpandAspectMode(mode) {
+      applyTrackedChange(() => {
+        session.pipeline.expand.aspectMode = mode;
+      });
+    },
+    setExpandCustomAspectWidth(value) {
+      applyTrackedChange(() => {
+        session.pipeline.expand.aspectMode = "custom";
+        session.pipeline.expand.customAspect.width = toPositiveInteger(
+          value,
+          session.pipeline.expand.customAspect.width
+        );
+      });
+    },
+    setExpandCustomAspectHeight(value) {
+      applyTrackedChange(() => {
+        session.pipeline.expand.aspectMode = "custom";
+        session.pipeline.expand.customAspect.height = toPositiveInteger(
+          value,
+          session.pipeline.expand.customAspect.height
+        );
+      });
+    },
+    resetExpand() {
+      applyTrackedChange(() => {
+        session.pipeline.expand = createDefaultExpand();
       });
     },
     setAppearanceBackgroundEnabled(enabled) {

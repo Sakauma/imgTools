@@ -17,7 +17,7 @@ async function collectJavaScriptFiles(root) {
       continue;
     }
 
-    if (entry.isFile() && target.endsWith(".js")) {
+    if (entry.isFile() && (target.endsWith(".js") || target.endsWith(".mjs"))) {
       files.push(target);
     }
   }

@@ -135,6 +135,13 @@ input::file-selector-button {
 }
 
 @media (max-width: 760px) {
+  input,
+  select,
+  button {
+    min-height: 40px;
+    padding: 10px 12px;
+  }
+
   .field-group.two-col,
   .button-row {
     grid-template-columns: 1fr;

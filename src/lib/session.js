@@ -1,4 +1,5 @@
 import { createDefaultAppearance, normalizeAppearance } from "./appearance.js";
+import { createDefaultExpand, getExpandedSize, normalizeExpand } from "./expand.js";
 import {
   DEFAULT_CROP_SCALE,
   MIN_CROP_SIZE,
@@ -8,7 +9,7 @@ import {
   getPixelCropRect,
 } from "./geometry.js";
 import { createDefaultAdjustments, normalizeAdjustments } from "./adjustments.js";
-import { clampQuality, getBaseFileName } from "./export.js";
+import { clampQuality, getBaseFileName, getOutputSize } from "./export.js";
 import { createHistoryState } from "./history.js";
 
 function serializeState(value) {
@@ -34,6 +35,7 @@ export function createDefaultPipeline() {
       keepAspectRatio: true,
     },
     adjustments: createDefaultAdjustments(),
+    expand: createDefaultExpand(),
     appearance: createDefaultAppearance(),
   };
 }
@@ -70,6 +72,7 @@ export function getPixelPipelineState(pipeline) {
           enabled: false,
         },
     adjustments: normalizeAdjustments(pipeline.adjustments),
+    expand: normalizeExpand(pipeline.expand),
     appearance: normalizeAppearance(pipeline.appearance),
   };
 }
@@ -201,6 +204,16 @@ export function getCropBaseSize(session) {
   return { width: rect.width, height: rect.height };
 }
 
+export function getContentOutputSize(session) {
+  const cropSize = getCropBaseSize(session);
+  return getOutputSize(cropSize, session.pipeline.resize);
+}
+
+export function getFinalOutputSize(session) {
+  const contentSize = getContentOutputSize(session);
+  return getExpandedSize(contentSize, session.pipeline.expand);
+}
+
 export function syncResizeTargets(session, { force = false } = {}) {
   if (!session.source) {
     return;
@@ -233,6 +246,7 @@ export function syncSessionDerivedState(session, { forceResizeTargets = false } 
     ratio: getLockedCropRatio(session),
   });
   session.pipeline.adjustments = normalizeAdjustments(session.pipeline.adjustments);
+  session.pipeline.expand = normalizeExpand(session.pipeline.expand);
   session.pipeline.appearance = normalizeAppearance(session.pipeline.appearance);
   session.exportOptions.quality = clampQuality(session.exportOptions.quality);
   syncResizeTargets(session, { force: forceResizeTargets });

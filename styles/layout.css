@@ -37,12 +37,13 @@
 .inspector,
 .tool-panel {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .workbench {
   display: grid;
   grid-template-columns: minmax(0, 1.65fr) minmax(320px, 420px);
+  grid-template-areas: "canvas inspector";
   gap: 16px;
   min-height: 0;
   align-items: stretch;
@@ -51,6 +52,10 @@
 .canvas-column,
 .inspector {
   min-height: 0;
+}
+
+.canvas-column {
+  grid-area: canvas;
 }
 
 .editor-panel {
@@ -79,7 +84,8 @@
 }
 
 .inspector {
-  grid-template-rows: minmax(0, 1fr) 196px;
+  grid-area: inspector;
+  grid-template-rows: minmax(0, 1fr) 172px;
   align-content: stretch;
 }
 
@@ -95,6 +101,12 @@
   .topbar,
   .workbench {
     grid-template-columns: 1fr;
+  }
+
+  .workbench {
+    grid-template-areas:
+      "canvas"
+      "inspector";
   }
 
   .app-shell {
@@ -129,5 +141,17 @@
   .app-shell {
     gap: 16px;
     padding: 14px;
+  }
+
+  .topbar {
+    gap: 14px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .workbench {
+    grid-template-areas:
+      "inspector"
+      "canvas";
   }
 }

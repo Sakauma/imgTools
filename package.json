@@ -4,8 +4,10 @@
   "type": "module",
   "scripts": {
     "check": "node scripts/check-syntax.mjs",
+    "serve:test": "node scripts/serve-static.mjs --port 4173",
     "test": "node --test",
     "test:ui": "playwright test",
+    "test:ui:update": "playwright test --update-snapshots",
     "test:perf": "playwright test -c playwright.perf.config.js",
     "test:all": "npm test && npm run test:ui && npm run test:perf"
   },

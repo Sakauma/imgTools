@@ -79,3 +79,41 @@ test("24MP desktop adjustment and export smoke", async ({ page }, testInfo) => {
     contentType: "application/json",
   });
 });
+
+test("24MP desktop expand smoke", async ({ page }, testInfo) => {
+  await page.goto("/");
+
+  await page.locator("#imageInput").setInputFiles({
+    name: "perf-24mp-expand.svg",
+    mimeType: "image/svg+xml",
+    buffer: Buffer.from(buildLargeSvgFixture()),
+  });
+
+  await expect(page.locator("#sourceMeta")).toHaveText("6000 × 4000px");
+
+  const timings = {};
+
+  await page.getByRole("button", { name: "外观" }).click();
+
+  let startedAt = Date.now();
+  await page.locator("#expandEnabled").check();
+  await page.getByRole("button", { name: "4:5" }).click();
+  await waitForPreviewFlush(page);
+  timings.expandPreviewMs = Date.now() - startedAt;
+
+  await expect(page.locator("#transformMeta")).toContainText("扩边 4:5");
+
+  const downloadPromise = page.waitForEvent("download");
+  startedAt = Date.now();
+  await page.getByRole("button", { name: "导出" }).click();
+  await page.getByRole("button", { name: "下载导出结果" }).click();
+  const download = await downloadPromise;
+  timings.expandExportMs = Date.now() - startedAt;
+
+  expect(download.suggestedFilename()).toBe("perf-24mp-expand.png");
+  console.log(`PERF ${JSON.stringify(timings)}`);
+  await testInfo.attach("perf-expand-timings", {
+    body: JSON.stringify(timings, null, 2),
+    contentType: "application/json",
+  });
+});

@@ -1,22 +1,5 @@
 import { expect, test } from "@playwright/test";
-
-async function openWorkbench(page) {
-  await page.goto("/");
-  await expect(page.locator("#sourceMeta")).not.toHaveText("未加载");
-  await expect(page.locator("#cropMeta")).not.toHaveText("未选择");
-  await expect(page.locator("#resultCanvas")).toBeVisible();
-}
-
-async function expectInViewport(page, locator) {
-  await expect(locator).toBeVisible();
-  const box = await locator.boundingBox();
-  expect(box).not.toBeNull();
-
-  const viewport = page.viewportSize();
-  expect(viewport).not.toBeNull();
-  expect(box.y).toBeGreaterThanOrEqual(0);
-  expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
-}
+import { expectInViewport, openWorkbench } from "./helpers.js";
 
 test("loads the demo image and renders session summary", async ({ page }) => {
   await openWorkbench(page);
@@ -102,6 +85,7 @@ test("adjustment and appearance controls stay within the desktop viewport", asyn
 
   await page.getByRole("button", { name: "外观" }).click();
   await expectInViewport(page, page.locator("#backgroundEnabled"));
+  await expectInViewport(page, page.locator("#expandEnabled"));
   await expectInViewport(page, page.locator("#cornerRadiusRange"));
   await expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
@@ -131,6 +115,25 @@ test("appearance updates preview metadata without changing output size and suppo
   await page.locator("#undoBtn").click();
   await expect(page.locator("#transformMeta")).not.toContainText("边框");
   await expect(page.locator("#transformMeta")).toContainText("圆角");
+  await expect(outputMeta).toHaveText(beforeOutputSize ?? "");
+});
+
+test("expand updates output metadata and supports undo", async ({ page }) => {
+  await openWorkbench(page);
+
+  const outputMeta = page.locator("#outputMeta");
+  const beforeOutputSize = await outputMeta.textContent();
+
+  await page.getByRole("button", { name: "外观" }).click();
+  await page.locator("#expandEnabled").check();
+  await page.getByRole("button", { name: "4:5" }).click();
+
+  await expect(page.locator("#transformMeta")).toContainText("扩边 4:5");
+  await expect(outputMeta).not.toHaveText(beforeOutputSize ?? "");
+  await expect(page.locator("#exportMeta")).toContainText("扩边 4:5");
+
+  await page.locator("#undoBtn").click();
+  await expect(page.locator("#transformMeta")).not.toContainText("扩边 4:5");
   await expect(outputMeta).toHaveText(beforeOutputSize ?? "");
 });
 

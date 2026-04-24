@@ -83,7 +83,7 @@ function traceRoundedRect(context, x, y, width, height, radius) {
 
 export function applyAppearanceToCanvas(sourceCanvas, appearance = {}) {
   const normalized = normalizeAppearance(appearance);
-  if (!hasActiveAppearance(normalized)) {
+  if (!normalized.cornerRadius && !normalized.borderWidth) {
     return sourceCanvas;
   }
 
@@ -91,12 +91,6 @@ export function applyAppearanceToCanvas(sourceCanvas, appearance = {}) {
   const context = canvas.getContext("2d");
   const radius = clamp(normalized.cornerRadius, 0, Math.min(canvas.width, canvas.height) / 2);
   const borderWidth = clamp(normalized.borderWidth, 0, Math.min(canvas.width, canvas.height) / 2);
-
-  if (normalized.backgroundColor) {
-    traceRoundedRect(context, 0, 0, canvas.width, canvas.height, radius);
-    context.fillStyle = normalized.backgroundColor;
-    context.fill();
-  }
 
   if (radius > 0) {
     context.save();

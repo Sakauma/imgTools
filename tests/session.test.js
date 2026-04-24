@@ -44,3 +44,20 @@ test("output cache key changes when appearance changes", () => {
 
   assert.notEqual(getOutputCacheKey(session), before);
 });
+
+test("output cache key changes when expand settings change", () => {
+  const session = createEditorSession();
+  resetSessionForSource(session, {
+    image: createStubImage(1600, 900),
+    name: "demo.png",
+    width: 1600,
+    height: 900,
+  });
+
+  const before = getOutputCacheKey(session);
+  session.pipeline.expand.enabled = true;
+  session.pipeline.expand.aspectMode = "1:1";
+  syncSessionDerivedState(session);
+
+  assert.notEqual(getOutputCacheKey(session), before);
+});

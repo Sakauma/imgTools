@@ -96,8 +96,6 @@
 }
 
 @media (max-width: 760px) {
-  .tool-tabs,
-  .subtool-tabs,
   .tool-layout-grid {
     grid-template-columns: 1fr;
   }
