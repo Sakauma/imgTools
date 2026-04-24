@@ -131,6 +131,11 @@ test("expand updates output metadata and supports undo", async ({ page }) => {
   await expect(page.locator("#transformMeta")).toContainText("扩边 4:5");
   await expect(outputMeta).not.toHaveText(beforeOutputSize ?? "");
   await expect(page.locator("#exportMeta")).toContainText("扩边 4:5");
+  const previewRatio = await page.locator("#resultCanvas").evaluate((canvas) => {
+    return canvas.width / canvas.height;
+  });
+  expect(previewRatio).toBeGreaterThan(0.78);
+  expect(previewRatio).toBeLessThan(0.82);
 
   await page.locator("#undoBtn").click();
   await expect(page.locator("#transformMeta")).not.toContainText("扩边 4:5");

@@ -8,6 +8,10 @@
   padding: 20px;
 }
 
+.topbar.panel {
+  padding: 14px 20px;
+}
+
 .section-title,
 .section-head {
   display: flex;
@@ -61,14 +65,15 @@
 
 .compact-stats {
   margin-top: 0;
+  align-self: stretch;
 }
 
 .compact-stats .stat-card {
-  padding: 10px 11px;
+  padding: 8px 10px;
 }
 
 .compact-stats .stat-card dd {
-  font-size: 0.84rem;
+  font-size: 0.8rem;
 }
 
 .viewport,
@@ -219,7 +224,8 @@
   display: grid;
   place-items: center;
   min-height: 80px;
-  padding: 16px;
+  padding: 10px;
+  overflow: hidden;
 }
 
 .result-empty {

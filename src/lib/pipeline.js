@@ -92,6 +92,7 @@ export function buildOutputCanvas(session) {
     return {
       canvas: session.cache.outputCanvas,
       cropSize: structuredClone(session.cache.outputMeta.cropSize),
+      contentSize: structuredClone(session.cache.outputMeta.contentSize),
       outputSize: structuredClone(session.cache.outputMeta.outputSize),
     };
   }
@@ -101,11 +102,11 @@ export function buildOutputCanvas(session) {
     orientedCanvas.width,
     orientedCanvas.height
   );
-  const outputSize = getOutputSize(
+  const contentSize = getOutputSize(
     { width: cropRect.width, height: cropRect.height },
     session.pipeline.resize
   );
-  const outputCanvas = createCanvas(outputSize.width, outputSize.height);
+  const outputCanvas = createCanvas(contentSize.width, contentSize.height);
   const context = outputCanvas.getContext("2d");
 
   context.imageSmoothingEnabled = true;
@@ -118,8 +119,8 @@ export function buildOutputCanvas(session) {
     cropRect.height,
     0,
     0,
-    outputSize.width,
-    outputSize.height
+    contentSize.width,
+    contentSize.height
   );
 
   const adjustedCanvas = applyAdjustmentsToCanvas(outputCanvas, session.pipeline.adjustments);
@@ -129,8 +130,10 @@ export function buildOutputCanvas(session) {
     session.pipeline.appearance.backgroundColor
   );
   const finalCanvas = applyAppearanceToCanvas(expandedCanvas, session.pipeline.appearance);
+  const outputSize = { width: finalCanvas.width, height: finalCanvas.height };
   const outputMeta = {
     cropSize: { width: cropRect.width, height: cropRect.height },
+    contentSize,
     outputSize,
   };
 
@@ -141,6 +144,7 @@ export function buildOutputCanvas(session) {
   return {
     canvas: finalCanvas,
     cropSize: outputMeta.cropSize,
+    contentSize: outputMeta.contentSize,
     outputSize: outputMeta.outputSize,
   };
 }

@@ -1,7 +1,7 @@
 .app-shell {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 16px;
+  gap: 12px;
   height: 100dvh;
   max-width: 1480px;
   margin: 0 auto;
@@ -22,13 +22,13 @@
   grid-template-columns: minmax(260px, 0.95fr) minmax(420px, 1.15fr);
   gap: 18px;
   align-items: center;
-  padding-top: 16px;
-  padding-bottom: 16px;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 .brand-block {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .topbar-controls,
@@ -37,7 +37,7 @@
 .inspector,
 .tool-panel {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .workbench {
@@ -85,16 +85,31 @@
 
 .inspector {
   grid-area: inspector;
-  grid-template-rows: minmax(0, 1fr) 172px;
+  grid-template-rows: minmax(0, 1fr) minmax(260px, 30vh);
   align-content: stretch;
 }
 
 .result-panel {
   display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(128px, 0.95fr);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
   min-height: 0;
-  align-content: start;
-  overflow: auto;
+  align-content: stretch;
+  overflow: hidden;
+}
+
+.result-panel .section-head {
+  grid-column: 1 / -1;
+}
+
+.result-panel .compact-stats,
+.result-panel .result-frame {
+  min-height: 0;
+}
+
+.result-panel .stat-card-wide {
+  grid-column: auto;
 }
 
 @media (max-width: 1180px) {
@@ -133,7 +148,13 @@
   }
 
   .result-panel {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
     overflow: visible;
+  }
+
+  .result-panel .section-head {
+    grid-column: auto;
   }
 }
 
