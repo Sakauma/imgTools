@@ -7,9 +7,11 @@
     "serve:test": "node scripts/serve-static.mjs --port 4173",
     "test": "node --test",
     "test:ui": "playwright test",
+    "test:ui:functional": "playwright test --grep-invert \"visual baseline\"",
+    "test:visual": "playwright test tests/ui/visual.spec.js",
     "test:ui:update": "playwright test --update-snapshots",
     "test:perf": "playwright test -c playwright.perf.config.js",
-    "test:all": "npm test && npm run test:ui && npm run test:perf"
+    "test:all": "npm test && npm run test:ui:functional && npm run test:perf"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.0"
