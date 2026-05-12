@@ -1,26 +1,34 @@
+function requireElement(doc, selector, name = selector) {
+  const element = doc.querySelector(selector);
+  if (!element) {
+    throw new Error(`Missing required UI element: ${name}`);
+  }
+  return element;
+}
+
 export function collectElements(doc) {
   return {
-    imageInput: doc.querySelector("#imageInput"),
-    loadDemoBtn: doc.querySelector("#loadDemoBtn"),
-    resetSessionBtn: doc.querySelector("#resetSessionBtn"),
-    undoBtn: doc.querySelector("#undoBtn"),
-    redoBtn: doc.querySelector("#redoBtn"),
-    toolTabs: doc.querySelector("#toolTabs"),
-    toolPanel: doc.querySelector("#toolPanel"),
-    viewport: doc.querySelector("#viewport"),
-    emptyState: doc.querySelector("#emptyState"),
-    stageShell: doc.querySelector("#stageShell"),
-    stageCanvas: doc.querySelector("#stageCanvas"),
-    cropBox: doc.querySelector("#cropBox"),
-    activeToolLabel: doc.querySelector("#activeToolLabel"),
-    toolHint: doc.querySelector("#toolHint"),
-    resultFrame: doc.querySelector(".result-frame"),
-    resultCanvas: doc.querySelector("#resultCanvas"),
-    resultEmptyState: doc.querySelector("#resultEmptyState"),
-    exportMeta: doc.querySelector("#exportMeta"),
-    sourceMeta: doc.querySelector("#sourceMeta"),
-    cropMeta: doc.querySelector("#cropMeta"),
-    outputMeta: doc.querySelector("#outputMeta"),
-    transformMeta: doc.querySelector("#transformMeta"),
+    imageInput: requireElement(doc, "#imageInput"),
+    loadDemoBtn: requireElement(doc, "#loadDemoBtn"),
+    resetSessionBtn: requireElement(doc, "#resetSessionBtn"),
+    undoBtn: requireElement(doc, "#undoBtn"),
+    redoBtn: requireElement(doc, "#redoBtn"),
+    toolTabs: requireElement(doc, "#toolTabs"),
+    toolPanel: requireElement(doc, "#toolPanel"),
+    viewport: requireElement(doc, "#viewport"),
+    emptyState: requireElement(doc, "#emptyState"),
+    stageShell: requireElement(doc, "#stageShell"),
+    stageCanvas: requireElement(doc, "#stageCanvas"),
+    cropBox: requireElement(doc, "#cropBox"),
+    activeToolLabel: requireElement(doc, "#activeToolLabel"),
+    toolHint: requireElement(doc, "#toolHint"),
+    resultFrame: requireElement(doc, ".result-frame", "resultFrame"),
+    resultCanvas: requireElement(doc, "#resultCanvas"),
+    resultEmptyState: requireElement(doc, "#resultEmptyState"),
+    exportMeta: requireElement(doc, "#exportMeta"),
+    sourceMeta: requireElement(doc, "#sourceMeta"),
+    cropMeta: requireElement(doc, "#cropMeta"),
+    outputMeta: requireElement(doc, "#outputMeta"),
+    transformMeta: requireElement(doc, "#transformMeta"),
   };
 }
