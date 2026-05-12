@@ -51,6 +51,7 @@ export function createApp(doc = document) {
     elements,
     loadSelectedFile: io.loadSelectedFile,
     renderCropOverlay: renderer.renderCropOverlay,
+    renderChrome: renderer.renderChrome,
     renderHistoryButtons: renderer.renderHistoryButtons,
     renderStage: renderer.renderStage,
     renderStats: renderer.renderStats,

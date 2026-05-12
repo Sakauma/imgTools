@@ -1,6 +1,7 @@
 import { MIN_CROP_SIZE, clamp, getDisplayCropRect } from "../lib/geometry.js";
 import { commitSnapshot, createSnapshot } from "../lib/history.js";
 import { createPaintLayer } from "../lib/layers.js";
+import { getShortcutCommand } from "./shortcuts.js";
 import {
   getLockedCropRatio,
   getOrientedSourceSize,
@@ -15,6 +16,7 @@ export function setupInteractions({
   elements,
   loadSelectedFile,
   renderCropOverlay,
+  renderChrome,
   renderHistoryButtons,
   renderStage,
   renderStats,
@@ -342,6 +344,33 @@ export function setupInteractions({
     loadSelectedFile(file);
   }
 
+  function handleKeyboardShortcut(event) {
+    const command = getShortcutCommand(event);
+    if (!command) {
+      return;
+    }
+
+    if (command.type === "undo") {
+      elements.undoBtn.click();
+      event.preventDefault();
+      return;
+    }
+
+    if (command.type === "redo") {
+      elements.redoBtn.click();
+      event.preventDefault();
+      return;
+    }
+
+    if (command.type === "tool") {
+      viewState.activeTool = command.toolId;
+      renderStage();
+      renderChrome();
+      queueResultPreview("immediate");
+      event.preventDefault();
+    }
+  }
+
   elements.cropBox.addEventListener("pointerdown", beginCropDrag);
   elements.stageCanvas.addEventListener("pointerdown", beginBrushStroke);
   elements.viewport.addEventListener("dragenter", (event) => {
@@ -363,6 +392,7 @@ export function setupInteractions({
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", finishDrag);
   window.addEventListener("pointercancel", finishDrag);
+  window.addEventListener("keydown", handleKeyboardShortcut);
   window.addEventListener("resize", () => {
     if (!session.source) {
       return;
