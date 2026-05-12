@@ -8,6 +8,7 @@ import {
 import { resetViewStateForSource } from "../lib/ui-state.js";
 import { createAdjustmentActions } from "./adjustment-actions.js";
 import { createAppearanceActions } from "./appearance-actions.js";
+import { createBrushActions } from "./brush-actions.js";
 import { createCropActions } from "./crop-actions.js";
 import { createExportActions } from "./export-actions.js";
 import { createOrientationActions } from "./orientation-actions.js";
@@ -45,6 +46,7 @@ export function createActions({
     ...createExportActions({ session, applyTrackedChange, downloadCurrentResult }),
     ...createAdjustmentActions({ session, applyTrackedChange }),
     ...createAppearanceActions({ session, applyTrackedChange }),
+    ...createBrushActions({ session, viewState, renderAll, applyTrackedChange }),
     ...createPosterActions({ session, viewState, renderAll, applyTrackedChange }),
   };
 

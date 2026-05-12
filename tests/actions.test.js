@@ -75,6 +75,29 @@ test("resize actions keep aspect ratio synced from crop size", () => {
   assert.equal(session.pipeline.resize.targetHeight, 450);
 });
 
+test("brush actions add and edit paint layers through history", () => {
+  const { actions, session, viewState } = createActionHarness();
+
+  actions.addPaintLayer();
+  const layer = session.pipeline.layers.find((item) => item.type === "paint");
+
+  assert.ok(layer);
+  assert.equal(viewState.selectedLayerId, layer.id);
+  assert.equal(session.history.undoStack.length, 1);
+
+  layer.strokes.push({
+    points: [{ x: 10, y: 10 }],
+    color: "#111111",
+    size: 12,
+    opacity: 100,
+    mode: "paint",
+  });
+  actions.removeLastPaintStroke(layer.id);
+
+  assert.equal(layer.strokes.length, 0);
+  assert.equal(session.history.undoStack.length, 2);
+});
+
 test("bound undo and redo restore tracked action snapshots", () => {
   const session = createEditorSession();
   const viewState = createViewState();

@@ -91,7 +91,25 @@
  *   strokeWidth: number,
  * }} ShapeLayer
  *
- * @typedef {TextLayer | ShapeLayer} Layer
+ * @typedef {{
+ *   x: number,
+ *   y: number,
+ * }} PaintPoint
+ *
+ * @typedef {{
+ *   points: PaintPoint[],
+ *   color: string,
+ *   size: number,
+ *   opacity: number,
+ *   mode: "paint" | "erase",
+ * }} PaintStroke
+ *
+ * @typedef {BaseLayer & {
+ *   type: "paint",
+ *   strokes: PaintStroke[],
+ * }} PaintLayer
+ *
+ * @typedef {TextLayer | ShapeLayer | PaintLayer} Layer
  *
  * @typedef {{
  *   orientation: OrientationState,

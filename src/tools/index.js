@@ -1,5 +1,6 @@
 import { adjustmentsTool } from "./adjustments.js";
 import { appearanceTool } from "./appearance.js";
+import { brushTool } from "./brush.js";
 import { cropTool } from "./crop.js";
 import { effectsTool } from "./effects.js";
 import { resizeTool } from "./resize.js";
@@ -15,6 +16,7 @@ export const tools = [
   resizeTool,
   adjustmentsTool,
   effectsTool,
+  brushTool,
   textTool,
   shapesTool,
   appearanceTool,

@@ -1,5 +1,6 @@
 import { MIN_CROP_SIZE, clamp, getDisplayCropRect } from "../lib/geometry.js";
 import { commitSnapshot, createSnapshot } from "../lib/history.js";
+import { createPaintLayer } from "../lib/layers.js";
 import {
   getLockedCropRatio,
   getOrientedSourceSize,
@@ -34,6 +35,94 @@ export function setupInteractions({
       x: clamp(clientX - rect.left, 0, rect.width),
       y: clamp(clientY - rect.top, 0, rect.height),
     };
+  }
+
+  function getNormalizedStagePoint(event) {
+    const point = getStagePoint(event.clientX, event.clientY);
+    return {
+      x: clamp((point.x / runtimeState.stageMetrics.displayWidth) * 100, 0, 100),
+      y: clamp((point.y / runtimeState.stageMetrics.displayHeight) * 100, 0, 100),
+    };
+  }
+
+  function findSelectedPaintLayer() {
+    const selectedLayer = session.pipeline.layers.find(
+      (layer) => layer.id === viewState.selectedLayerId && layer.type === "paint"
+    );
+    if (selectedLayer) {
+      return selectedLayer;
+    }
+
+    const fallbackLayer = session.pipeline.layers.find((layer) => layer.type === "paint") ?? null;
+    if (fallbackLayer) {
+      viewState.selectedLayerId = fallbackLayer.id;
+    }
+    return fallbackLayer;
+  }
+
+  function ensurePaintLayer() {
+    const existingLayer = findSelectedPaintLayer();
+    if (existingLayer) {
+      return existingLayer;
+    }
+
+    const layer = createPaintLayer({ zIndex: session.pipeline.layers.length + 10 });
+    session.pipeline.layers.push(layer);
+    viewState.selectedLayerId = layer.id;
+    return layer;
+  }
+
+  function beginBrushStroke(event) {
+    if (!session.source || viewState.activeTool !== "brush" || !runtimeState.stageMetrics) {
+      return;
+    }
+
+    runtimeState.pendingHistorySnapshot = createSnapshot(session, viewState);
+    const layer = ensurePaintLayer();
+    const stroke = {
+      points: [getNormalizedStagePoint(event)],
+      color: viewState.brush.color,
+      size: viewState.brush.size,
+      opacity: viewState.brush.opacity,
+      mode: viewState.brush.mode,
+    };
+    layer.strokes.push(stroke);
+    runtimeState.drag = {
+      type: "paint",
+      layerId: layer.id,
+      strokeIndex: layer.strokes.length - 1,
+    };
+    invalidateOutputCache(session);
+    elements.stageCanvas.setPointerCapture(event.pointerId);
+    renderStage();
+    renderStats();
+    queueResultPreview("throttled");
+    event.preventDefault();
+  }
+
+  function addBrushPoint(event) {
+    const layer = session.pipeline.layers.find(
+      (item) => item.id === runtimeState.drag.layerId && item.type === "paint"
+    );
+    const stroke = layer?.strokes[runtimeState.drag.strokeIndex];
+    if (!stroke) {
+      return;
+    }
+
+    const nextPoint = getNormalizedStagePoint(event);
+    const previousPoint = stroke.points.at(-1);
+    const distance = previousPoint
+      ? Math.hypot(nextPoint.x - previousPoint.x, nextPoint.y - previousPoint.y)
+      : Infinity;
+    if (distance < 0.15) {
+      return;
+    }
+
+    stroke.points.push(nextPoint);
+    invalidateOutputCache(session);
+    renderStage();
+    renderStats();
+    queueResultPreview("throttled");
   }
 
   function setCropRect(nextRect, { previewMode = "immediate" } = {}) {
@@ -167,6 +256,11 @@ export function setupInteractions({
       return;
     }
 
+    if (runtimeState.drag.type === "paint") {
+      addBrushPoint(event);
+      return;
+    }
+
     const point = getStagePoint(event.clientX, event.clientY);
     const normalizedPoint = {
       x: point.x / runtimeState.stageMetrics.displayWidth,
@@ -214,8 +308,15 @@ export function setupInteractions({
     if (event?.pointerId !== undefined && elements.cropBox.hasPointerCapture(event.pointerId)) {
       elements.cropBox.releasePointerCapture(event.pointerId);
     }
+    if (event?.pointerId !== undefined && elements.stageCanvas.hasPointerCapture(event.pointerId)) {
+      elements.stageCanvas.releasePointerCapture(event.pointerId);
+    }
 
     const before = runtimeState.pendingHistorySnapshot;
+    if (before) {
+      syncSessionDerivedState(session);
+      invalidateOutputCache(session);
+    }
     const after = createSnapshot(session, viewState);
     runtimeState.drag = null;
     runtimeState.pendingHistorySnapshot = null;
@@ -223,6 +324,8 @@ export function setupInteractions({
     if (before) {
       commitSnapshot(session, before, after);
       renderHistoryButtons();
+      renderStage();
+      renderStats();
     }
 
     queueResultPreview("immediate");
@@ -240,6 +343,7 @@ export function setupInteractions({
   }
 
   elements.cropBox.addEventListener("pointerdown", beginCropDrag);
+  elements.stageCanvas.addEventListener("pointerdown", beginBrushStroke);
   elements.viewport.addEventListener("dragenter", (event) => {
     event.preventDefault();
     runtimeState.dropDepth += 1;

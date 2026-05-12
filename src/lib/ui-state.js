@@ -3,6 +3,12 @@ export function createViewState() {
     activeTool: "crop",
     adjustmentSection: "basic",
     selectedLayerId: null,
+    brush: {
+      color: "#111111",
+      size: 18,
+      opacity: 100,
+      mode: "paint",
+    },
   };
 }
 
@@ -26,6 +32,10 @@ export function resetViewStateForSource(viewState) {
   viewState.activeTool = "crop";
   viewState.adjustmentSection = "basic";
   viewState.selectedLayerId = null;
+  viewState.brush.color = "#111111";
+  viewState.brush.size = 18;
+  viewState.brush.opacity = 100;
+  viewState.brush.mode = "paint";
 }
 
 export function resetRuntimeState(runtimeState) {

@@ -4,6 +4,7 @@ import { clamp, toPositiveInteger } from "./geometry.js";
 /** @typedef {import("./types.js").Layer} Layer */
 /** @typedef {import("./types.js").TextLayer} TextLayer */
 /** @typedef {import("./types.js").ShapeLayer} ShapeLayer */
+/** @typedef {import("./types.js").PaintLayer} PaintLayer */
 
 export const BLEND_MODES = ["normal", "multiply", "screen", "overlay", "hard-light", "difference"];
 
@@ -21,13 +22,14 @@ function isHexColor(value) {
 }
 
 function normalizeBaseLayer(layer, index = 0) {
+  const type = ["shape", "paint"].includes(layer.type) ? layer.type : "text";
   return {
     id: String(layer.id || `layer-${Date.now()}-${index}`),
-    type: layer.type === "shape" ? "shape" : "text",
+    type,
     x: clamp(Number(layer.x) || 50, 0, 100),
     y: clamp(Number(layer.y) || 50, 0, 100),
-    width: clamp(Number(layer.width) || 36, 4, 100),
-    height: clamp(Number(layer.height) || 18, 4, 100),
+    width: clamp(Number(layer.width) || (type === "paint" ? 100 : 36), 4, 100),
+    height: clamp(Number(layer.height) || (type === "paint" ? 100 : 18), 4, 100),
     rotation: clamp(Number(layer.rotation) || 0, -180, 180),
     opacity: clamp(Number(layer.opacity ?? 100), 0, 100),
     blendMode: BLEND_MODES.includes(layer.blendMode) ? layer.blendMode : "normal",
@@ -84,6 +86,46 @@ export function createShapeLayer(overrides = {}) {
   };
 }
 
+/** @returns {PaintLayer} */
+export function createPaintLayer(overrides = {}) {
+  return {
+    id: `paint-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    type: "paint",
+    x: 50,
+    y: 50,
+    width: 100,
+    height: 100,
+    rotation: 0,
+    opacity: 100,
+    blendMode: "normal",
+    visible: true,
+    zIndex: 30,
+    strokes: [],
+    ...overrides,
+  };
+}
+
+function normalizePaintPoint(point = {}) {
+  return {
+    x: clamp(Number(point.x) || 0, 0, 100),
+    y: clamp(Number(point.y) || 0, 0, 100),
+  };
+}
+
+function normalizePaintStroke(stroke = {}) {
+  const points = Array.isArray(stroke.points)
+    ? stroke.points.map(normalizePaintPoint).slice(0, 4_000)
+    : [];
+
+  return {
+    points,
+    color: isHexColor(stroke.color) ? stroke.color : "#111111",
+    size: clamp(Number(stroke.size) || 18, 1, 180),
+    opacity: clamp(Number(stroke.opacity ?? 100), 0, 100),
+    mode: stroke.mode === "erase" ? "erase" : "paint",
+  };
+}
+
 /** @returns {Layer} */
 export function normalizeLayer(layer = {}, index = 0) {
   const base = normalizeBaseLayer(layer, index);
@@ -94,6 +136,13 @@ export function normalizeLayer(layer = {}, index = 0) {
       fillColor: isHexColor(layer.fillColor) ? layer.fillColor : "#d21919",
       strokeColor: isHexColor(layer.strokeColor) ? layer.strokeColor : "#111111",
       strokeWidth: clamp(Number(layer.strokeWidth) || 0, 0, 80),
+    };
+  }
+
+  if (base.type === "paint") {
+    return {
+      ...base,
+      strokes: Array.isArray(layer.strokes) ? layer.strokes.map(normalizePaintStroke) : [],
     };
   }
 
@@ -120,10 +169,16 @@ export function getLayerSummary(layers = []) {
   const normalized = normalizeLayers(layers).filter((layer) => layer.visible);
   const textCount = normalized.filter((layer) => layer.type === "text").length;
   const shapeCount = normalized.filter((layer) => layer.type === "shape").length;
+  const paintCount = normalized.filter((layer) => layer.type === "paint").length;
   if (!normalized.length) {
     return "无图层";
   }
-  return `图层 ${normalized.length} 个 · 文字 ${textCount} · 色块 ${shapeCount}`;
+
+  const parts = [`图层 ${normalized.length} 个`, `文字 ${textCount}`, `色块 ${shapeCount}`];
+  if (paintCount > 0) {
+    parts.push(`绘画 ${paintCount}`);
+  }
+  return parts.join(" · ");
 }
 
 function prepareLayerContext(context, canvas, layer) {
@@ -182,6 +237,47 @@ function drawShapeLayer(context, canvas, layer) {
   context.restore();
 }
 
+function drawPaintLayer(context, canvas, layer) {
+  const paintCanvas = createCanvas(canvas.width, canvas.height);
+  const paintContext = paintCanvas.getContext("2d");
+  paintContext.lineCap = "round";
+  paintContext.lineJoin = "round";
+
+  layer.strokes.forEach((stroke) => {
+    if (stroke.points.length === 0 || stroke.opacity <= 0 || stroke.size <= 0) {
+      return;
+    }
+
+    paintContext.save();
+    paintContext.globalAlpha = stroke.opacity / 100;
+    paintContext.globalCompositeOperation = stroke.mode === "erase" ? "destination-out" : "source-over";
+    paintContext.strokeStyle = stroke.color;
+    paintContext.lineWidth = stroke.size;
+    paintContext.beginPath();
+    const [firstPoint, ...restPoints] = stroke.points;
+    const startX = (firstPoint.x / 100) * canvas.width;
+    const startY = (firstPoint.y / 100) * canvas.height;
+    paintContext.moveTo(startX, startY);
+
+    if (restPoints.length === 0) {
+      paintContext.lineTo(startX + 0.01, startY + 0.01);
+    } else {
+      restPoints.forEach((point) => {
+        paintContext.lineTo((point.x / 100) * canvas.width, (point.y / 100) * canvas.height);
+      });
+    }
+
+    paintContext.stroke();
+    paintContext.restore();
+  });
+
+  context.save();
+  context.globalAlpha = layer.opacity / 100;
+  context.globalCompositeOperation = BLEND_TO_COMPOSITE[layer.blendMode] || "source-over";
+  context.drawImage(paintCanvas, 0, 0);
+  context.restore();
+}
+
 export function renderLayersToCanvas(sourceCanvas, layers = []) {
   const normalized = normalizeLayers(layers).filter((layer) => layer.visible && layer.opacity > 0);
   if (!normalized.length) {
@@ -194,6 +290,8 @@ export function renderLayersToCanvas(sourceCanvas, layers = []) {
   normalized.forEach((layer) => {
     if (layer.type === "shape") {
       drawShapeLayer(context, canvas, layer);
+    } else if (layer.type === "paint") {
+      drawPaintLayer(context, canvas, layer);
     } else {
       drawTextLayer(context, canvas, layer);
     }
