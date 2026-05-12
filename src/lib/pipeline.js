@@ -2,11 +2,10 @@ import { applyAppearanceToCanvas } from "./appearance.js";
 import { applyAdjustmentsToCanvas } from "./adjustments.js";
 import { createCanvas, getCanvasContext } from "./canvas.js";
 import { applyPosterEffectsToCanvas } from "./effects.js";
-import { applyExpandToCanvas, getExpandedSize } from "./expand.js";
-import { fitInsideBox, getDisplayCropRect, getOrientedSize, getPixelCropRect } from "./geometry.js";
-import { getOutputSize } from "./export.js";
+import { applyExpandToCanvas } from "./expand.js";
+import { fitInsideBox, getDisplayCropRect, getOrientedSize } from "./geometry.js";
 import { renderLayersToCanvas } from "./layers.js";
-import { getOrientationCacheKey, getOrientedSourceSize, getOutputCacheKey } from "./session.js";
+import { getOrientationCacheKey, getOutputCacheKey, getOutputPlan } from "./session.js";
 
 export const LARGE_OUTPUT_WARNING_PIXELS = 40_000_000;
 export const MAX_OUTPUT_PIXELS = 120_000_000;
@@ -219,27 +218,17 @@ export function buildOutputCanvas(session) {
     };
   }
 
-  const orientedSize = getOrientedSourceSize(session);
-  const cropRect = getPixelCropRect(
-    session.pipeline.crop.rect,
-    orientedSize.width,
-    orientedSize.height
-  );
-  const contentSize = getOutputSize(
-    { width: cropRect.width, height: cropRect.height },
-    session.pipeline.resize
-  );
-  const expectedOutputSize = getExpandedSize(contentSize, session.pipeline.expand);
-  assertOutputSizeAllowed(expectedOutputSize);
+  const outputPlan = getOutputPlan(session);
+  assertOutputSizeAllowed(outputPlan.outputSize);
   const orientedCanvas = getOrientedCanvas(session);
   if (!orientedCanvas) {
     return null;
   }
-  const finalCanvas = renderPipelineFromCrop(session, cropRect, contentSize);
+  const finalCanvas = renderPipelineFromCrop(session, outputPlan.cropRect, outputPlan.contentSize);
   const outputSize = { width: finalCanvas.width, height: finalCanvas.height };
   const outputMeta = {
-    cropSize: { width: cropRect.width, height: cropRect.height },
-    contentSize,
+    cropSize: outputPlan.cropSize,
+    contentSize: outputPlan.contentSize,
     outputSize,
   };
 
@@ -264,16 +253,7 @@ export function buildPreviewCanvas(session, maxPreviewSize = 420) {
   const previewBounds = typeof maxPreviewSize === "number"
     ? { width: maxPreviewSize, height: maxPreviewSize }
     : maxPreviewSize;
-  const cropRect = getPixelCropRect(
-    session.pipeline.crop.rect,
-    orientedCanvas.width,
-    orientedCanvas.height
-  );
-  const contentSize = getOutputSize(
-    { width: cropRect.width, height: cropRect.height },
-    session.pipeline.resize
-  );
-  const outputSize = getExpandedSize(contentSize, session.pipeline.expand);
+  const { cropRect, contentSize, outputSize } = getOutputPlan(session);
   const previewSize = fitInsideBox(
     outputSize.width,
     outputSize.height,

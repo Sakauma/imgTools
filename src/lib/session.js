@@ -207,24 +207,44 @@ export function getOrientedSourceSize(session) {
   );
 }
 
-export function getCropBaseSize(session) {
+export function getOutputPlan(session) {
   if (!session.source) {
-    return { width: 0, height: 0 };
+    const emptySize = { width: 0, height: 0 };
+    return {
+      cropRect: { x: 0, y: 0, width: 0, height: 0 },
+      cropSize: emptySize,
+      contentSize: emptySize,
+      outputSize: emptySize,
+    };
   }
 
   const oriented = getOrientedSourceSize(session);
-  const rect = getPixelCropRect(session.pipeline.crop.rect, oriented.width, oriented.height);
-  return { width: rect.width, height: rect.height };
+  const cropRect = getPixelCropRect(
+    session.pipeline.crop.rect,
+    oriented.width,
+    oriented.height
+  );
+  const cropSize = { width: cropRect.width, height: cropRect.height };
+  const contentSize = getOutputSize(cropSize, session.pipeline.resize);
+
+  return {
+    cropRect,
+    cropSize,
+    contentSize,
+    outputSize: getExpandedSize(contentSize, session.pipeline.expand),
+  };
+}
+
+export function getCropBaseSize(session) {
+  return getOutputPlan(session).cropSize;
 }
 
 export function getContentOutputSize(session) {
-  const cropSize = getCropBaseSize(session);
-  return getOutputSize(cropSize, session.pipeline.resize);
+  return getOutputPlan(session).contentSize;
 }
 
 export function getFinalOutputSize(session) {
-  const contentSize = getContentOutputSize(session);
-  return getExpandedSize(contentSize, session.pipeline.expand);
+  return getOutputPlan(session).outputSize;
 }
 
 export function syncResizeTargets(session, { force = false } = {}) {

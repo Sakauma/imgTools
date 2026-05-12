@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 
 import {
   createEditorSession,
+  getContentOutputSize,
+  getCropBaseSize,
+  getFinalOutputSize,
   getOutputCacheKey,
+  getOutputPlan,
   resetSessionForSource,
   syncSessionDerivedState,
 } from "../src/lib/session.js";
@@ -80,4 +84,30 @@ test("output cache key changes when poster effects or layers change", () => {
 
   assert.notEqual(afterEffects, before);
   assert.notEqual(getOutputCacheKey(session), afterEffects);
+});
+
+test("output plan centralizes crop, resize, and expanded output sizes", () => {
+  const session = createEditorSession();
+  resetSessionForSource(session, {
+    image: createStubImage(1600, 900),
+    name: "demo.png",
+    width: 1600,
+    height: 900,
+  });
+  session.pipeline.crop.rect = { x: 0, y: 0, width: 1, height: 1 };
+  session.pipeline.resize.enabled = true;
+  session.pipeline.resize.targetWidth = 800;
+  session.pipeline.resize.targetHeight = 600;
+  session.pipeline.expand.enabled = true;
+  session.pipeline.expand.aspectMode = "1:1";
+
+  const plan = getOutputPlan(session);
+
+  assert.deepEqual(plan.cropRect, { x: 0, y: 0, width: 1600, height: 900 });
+  assert.deepEqual(plan.cropSize, { width: 1600, height: 900 });
+  assert.deepEqual(plan.contentSize, { width: 800, height: 600 });
+  assert.deepEqual(plan.outputSize, { width: 800, height: 800 });
+  assert.deepEqual(getCropBaseSize(session), plan.cropSize);
+  assert.deepEqual(getContentOutputSize(session), plan.contentSize);
+  assert.deepEqual(getFinalOutputSize(session), plan.outputSize);
 });
