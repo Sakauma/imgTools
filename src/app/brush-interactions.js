@@ -1,23 +1,16 @@
 import { createSnapshot } from "../lib/history.js";
 import { createPaintLayer } from "../lib/layers.js";
+import { getSelectedLayer, syncSelectedLayer } from "../lib/layer-selection.js";
 import { invalidateOutputCache } from "../lib/session.js";
 import { getNormalizedStagePoint } from "./stage-points.js";
 
 const MIN_BRUSH_POINT_DISTANCE = 0.15;
 
 function findSelectedPaintLayer(session, viewState) {
-  const selectedLayer = session.pipeline.layers.find(
-    (layer) => layer.id === viewState.selectedLayerId && layer.type === "paint"
+  return syncSelectedLayer(
+    viewState,
+    getSelectedLayer(session.pipeline.layers, viewState.selectedLayerId, { type: "paint", fallback: "first" })
   );
-  if (selectedLayer) {
-    return selectedLayer;
-  }
-
-  const fallbackLayer = session.pipeline.layers.find((layer) => layer.type === "paint") ?? null;
-  if (fallbackLayer) {
-    viewState.selectedLayerId = fallbackLayer.id;
-  }
-  return fallbackLayer;
 }
 
 function ensurePaintLayer(session, viewState) {

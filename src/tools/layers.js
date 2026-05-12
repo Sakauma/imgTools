@@ -1,4 +1,5 @@
-import { BLEND_MODES, normalizeLayers } from "../lib/layers.js";
+import { BLEND_MODES } from "../lib/layers.js";
+import { getSelectedLayer, getSortedLayers, syncSelectedLayer } from "../lib/layer-selection.js";
 import { escapeHtml } from "../lib/html.js";
 import { bindClick, bindRange, bindSelect } from "./bindings.js";
 
@@ -18,9 +19,8 @@ function layerKind(layer) {
   return `${layer.strokes.length} 笔`;
 }
 
-function selectedLayer(session, viewState) {
-  const layers = normalizeLayers(session.pipeline.layers);
-  return layers.find((layer) => layer.id === viewState.selectedLayerId) ?? layers.at(-1) ?? null;
+function selectedLayer(layers, viewState) {
+  return getSelectedLayer(layers, viewState.selectedLayerId, { fallback: "last" });
 }
 
 function option(value, label, selected) {
@@ -32,11 +32,9 @@ export const layersTool = {
   label: "图层",
   hint: "集中管理文字、形状和绘画层，可调整顺序、显隐、透明度和混合模式。",
   render(root, session, viewState, actions) {
-    const layers = normalizeLayers(session.pipeline.layers).toReversed();
-    const layer = selectedLayer(session, viewState);
-    if (layer && viewState.selectedLayerId !== layer.id) {
-      viewState.selectedLayerId = layer.id;
-    }
+    const sortedLayers = getSortedLayers(session.pipeline.layers);
+    const layers = sortedLayers.toReversed();
+    const layer = syncSelectedLayer(viewState, selectedLayer(sortedLayers, viewState));
 
     root.innerHTML = `
       <div class="layer-list layer-stack">

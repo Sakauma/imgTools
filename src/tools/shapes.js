@@ -1,14 +1,10 @@
-import { BLEND_MODES, normalizeLayers } from "../lib/layers.js";
+import { BLEND_MODES } from "../lib/layers.js";
+import { getLayersByType, getSelectedLayer, syncSelectedLayer } from "../lib/layer-selection.js";
 import { escapeAttribute } from "../lib/html.js";
 import { bindClick, bindInput, bindRange, bindSelect } from "./bindings.js";
 
 function shapeLayers(session) {
-  return normalizeLayers(session.pipeline.layers).filter((layer) => layer.type === "shape");
-}
-
-function selectedShapeLayer(session, viewState) {
-  const layers = shapeLayers(session);
-  return layers.find((layer) => layer.id === viewState.selectedLayerId) ?? layers[0] ?? null;
+  return getLayersByType(session.pipeline.layers, "shape");
 }
 
 export const shapesTool = {
@@ -17,10 +13,10 @@ export const shapesTool = {
   hint: "添加可旋转的矩形色块，用于红黑贴纸、蓝色色块和局部视觉标记。",
   render(root, session, viewState, actions) {
     const layers = shapeLayers(session);
-    const layer = selectedShapeLayer(session, viewState);
-    if (layer && viewState.selectedLayerId !== layer.id) {
-      viewState.selectedLayerId = layer.id;
-    }
+    const layer = syncSelectedLayer(
+      viewState,
+      getSelectedLayer(layers, viewState.selectedLayerId, { fallback: "first" })
+    );
 
     root.innerHTML = `
       <div class="button-row">

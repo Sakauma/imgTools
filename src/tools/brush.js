@@ -1,13 +1,9 @@
-import { BLEND_MODES, normalizeLayers } from "../lib/layers.js";
+import { BLEND_MODES } from "../lib/layers.js";
+import { getLayersByType, getSelectedLayer, syncSelectedLayer } from "../lib/layer-selection.js";
 import { bindClick, bindInput, bindRange, bindSelect } from "./bindings.js";
 
 function paintLayers(session) {
-  return normalizeLayers(session.pipeline.layers).filter((layer) => layer.type === "paint");
-}
-
-function selectedPaintLayer(session, viewState) {
-  const layers = paintLayers(session);
-  return layers.find((layer) => layer.id === viewState.selectedLayerId) ?? layers[0] ?? null;
+  return getLayersByType(session.pipeline.layers, "paint");
 }
 
 function option(value, label, selected) {
@@ -20,10 +16,10 @@ export const brushTool = {
   hint: "在输出预览上自由绘制，切换橡皮可擦除当前绘画层的笔触。",
   render(root, session, viewState, actions) {
     const layers = paintLayers(session);
-    const layer = selectedPaintLayer(session, viewState);
-    if (layer && viewState.selectedLayerId !== layer.id) {
-      viewState.selectedLayerId = layer.id;
-    }
+    const layer = syncSelectedLayer(
+      viewState,
+      getSelectedLayer(layers, viewState.selectedLayerId, { fallback: "first" })
+    );
 
     root.innerHTML = `
       <div class="button-row">
