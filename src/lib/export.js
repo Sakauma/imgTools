@@ -1,5 +1,8 @@
 import { clamp, toPositiveInteger } from "./geometry.js";
 
+/** @typedef {import("./types.js").Size} Size */
+/** @typedef {import("./types.js").ExportOptions} ExportOptions */
+
 export const EXPORT_FORMATS = [
   { mime: "image/png", label: "PNG", extension: "png", adjustableQuality: false },
   { mime: "image/jpeg", label: "JPEG", extension: "jpg", adjustableQuality: true },

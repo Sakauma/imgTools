@@ -1,17 +1,50 @@
 import { applyAppearanceToCanvas } from "./appearance.js";
 import { applyAdjustmentsToCanvas } from "./adjustments.js";
+import { createCanvas } from "./canvas.js";
 import { applyPosterEffectsToCanvas } from "./effects.js";
 import { applyExpandToCanvas, getExpandedSize } from "./expand.js";
 import { fitInsideBox, getDisplayCropRect, getOrientedSize, getPixelCropRect } from "./geometry.js";
 import { getOutputSize } from "./export.js";
 import { renderLayersToCanvas } from "./layers.js";
-import { getOrientationCacheKey, getOutputCacheKey } from "./session.js";
+import { getOrientationCacheKey, getOrientedSourceSize, getOutputCacheKey } from "./session.js";
 
-function createCanvas(width, height) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  return canvas;
+export const LARGE_OUTPUT_WARNING_PIXELS = 40_000_000;
+export const MAX_OUTPUT_PIXELS = 120_000_000;
+
+export function getOutputPixelCount(outputSize) {
+  return Math.max(0, Number(outputSize?.width) || 0) * Math.max(0, Number(outputSize?.height) || 0);
+}
+
+export function getOutputSafetyStatus(outputSize) {
+  const pixelCount = getOutputPixelCount(outputSize);
+  if (pixelCount > MAX_OUTPUT_PIXELS) {
+    return {
+      pixelCount,
+      level: "blocked",
+      message: `输出约 ${Math.round(pixelCount / 1_000_000)}MP，超过本地导出上限。请缩小裁剪或输出尺寸。`,
+    };
+  }
+
+  if (pixelCount > LARGE_OUTPUT_WARNING_PIXELS) {
+    return {
+      pixelCount,
+      level: "warning",
+      message: `大图输出约 ${Math.round(pixelCount / 1_000_000)}MP，导出可能较慢。`,
+    };
+  }
+
+  return {
+    pixelCount,
+    level: "ok",
+    message: "",
+  };
+}
+
+function assertOutputSizeAllowed(outputSize) {
+  const safety = getOutputSafetyStatus(outputSize);
+  if (safety.level === "blocked") {
+    throw new RangeError(safety.message);
+  }
 }
 
 function scaleForPreview(value, scale) {
@@ -172,8 +205,7 @@ export function renderStageCanvas(session, canvas, viewportWidth, viewportHeight
 }
 
 export function buildOutputCanvas(session) {
-  const orientedCanvas = getOrientedCanvas(session);
-  if (!orientedCanvas) {
+  if (!session.source) {
     return null;
   }
 
@@ -187,15 +219,22 @@ export function buildOutputCanvas(session) {
     };
   }
 
+  const orientedSize = getOrientedSourceSize(session);
   const cropRect = getPixelCropRect(
     session.pipeline.crop.rect,
-    orientedCanvas.width,
-    orientedCanvas.height
+    orientedSize.width,
+    orientedSize.height
   );
   const contentSize = getOutputSize(
     { width: cropRect.width, height: cropRect.height },
     session.pipeline.resize
   );
+  const expectedOutputSize = getExpandedSize(contentSize, session.pipeline.expand);
+  assertOutputSizeAllowed(expectedOutputSize);
+  const orientedCanvas = getOrientedCanvas(session);
+  if (!orientedCanvas) {
+    return null;
+  }
   const finalCanvas = renderPipelineFromCrop(session, cropRect, contentSize);
   const outputSize = { width: finalCanvas.width, height: finalCanvas.height };
   const outputMeta = {

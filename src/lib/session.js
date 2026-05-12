@@ -14,10 +14,15 @@ import { clampQuality, getBaseFileName, getOutputSize } from "./export.js";
 import { createHistoryState } from "./history.js";
 import { normalizeLayers } from "./layers.js";
 
+/** @typedef {import("./types.js").Pipeline} Pipeline */
+/** @typedef {import("./types.js").ExportOptions} ExportOptions */
+/** @typedef {import("./types.js").EditorSession} EditorSession */
+
 function serializeState(value) {
   return JSON.stringify(value);
 }
 
+/** @returns {Pipeline} */
 export function createDefaultPipeline() {
   return {
     orientation: {
@@ -44,6 +49,7 @@ export function createDefaultPipeline() {
   };
 }
 
+/** @returns {ExportOptions} */
 export function createDefaultExportOptions(fileName) {
   return {
     format: "image/png",
@@ -97,6 +103,7 @@ export function hasPixelPipelineChanged(leftSnapshot, rightSnapshot) {
   );
 }
 
+/** @returns {EditorSession} */
 export function createEditorSession() {
   return {
     source: null,

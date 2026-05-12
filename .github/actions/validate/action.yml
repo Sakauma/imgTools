@@ -1,0 +1,86 @@
+name: Validate Project
+description: Install dependencies and run repository validation checks.
+
+inputs:
+  run-visual:
+    description: Run Playwright visual snapshot tests.
+    required: false
+    default: "false"
+  visual-required:
+    description: Fail validation when visual snapshot tests fail.
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Verify required files
+      shell: bash
+      run: |
+        set -euo pipefail
+        test -f index.html
+        test -f styles.css
+        test -d styles
+        test -f package.json
+        test -f src/main.js
+        test -f README.md
+        test -f demo.svg
+        test -f playwright.config.js
+        test -f playwright.perf.config.js
+        test -f scripts/serve-static.mjs
+        test -f src/lib/layers.js
+        test -f src/lib/effects.js
+        test -f src/lib/presets.js
+        test -f tests/layers.test.js
+        test -f tests/effects.test.js
+        test -f tests/presets.test.js
+        test -f tests/ui/workbench.spec.js
+        test -f tests/ui/mobile.spec.js
+        test -f tests/ui/visual.spec.js
+        test -f tests/perf/workbench.perf.spec.js
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Check JavaScript syntax
+      shell: bash
+      run: npm run check
+
+    - name: Run lint checks
+      shell: bash
+      run: npm run lint
+
+    - name: Run unit tests
+      shell: bash
+      run: npm test
+
+    - name: Install Playwright browser
+      shell: bash
+      run: npx playwright install --with-deps chromium
+
+    - name: Run UI functional tests
+      shell: bash
+      run: npm run test:ui:functional
+
+    - name: Run visual snapshot tests
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ "${{ inputs.run-visual }}" != "true" ]]; then
+          exit 0
+        fi
+
+        if npm run test:visual; then
+          exit 0
+        fi
+
+        if [[ "${{ inputs.visual-required }}" == "true" ]]; then
+          exit 1
+        fi
+
+        echo "::warning::Visual snapshot tests failed; review uploaded Playwright artifacts."
+
+    - name: Run performance smoke tests
+      shell: bash
+      run: npm run test:perf

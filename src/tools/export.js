@@ -1,4 +1,5 @@
 import { EXPORT_FORMATS, isQualityAdjustable } from "../lib/export.js";
+import { escapeHtml } from "../lib/html.js";
 
 export const exportTool = {
   id: "export",
@@ -6,6 +7,9 @@ export const exportTool = {
   hint: "最终输出遵循：旋转/翻转 → 裁剪 → 尺寸调整 → 图像调整 → 扩边 → 外观 → 编码。",
   render(root, session, viewState, actions, derived) {
     const canAdjustQuality = isQualityAdjustable(session.exportOptions.format);
+    const isExportBusy = derived.exportStatus === "busy";
+    const isOutputBlocked = derived.outputSafety?.level === "blocked";
+    const statusText = derived.exportError || derived.outputSafety?.message || "";
 
     root.innerHTML = `
       <div class="field">
@@ -27,11 +31,14 @@ export const exportTool = {
         <input id="exportFileNameInput" type="text" maxlength="64" />
       </label>
 
-      <button id="downloadBtn" class="primary-button" type="button">下载导出结果</button>
+      <button id="downloadBtn" class="primary-button" type="button">
+        ${isExportBusy ? "正在准备导出..." : "下载导出结果"}
+      </button>
 
       <div class="tool-summary">
         <strong>最终输出</strong>
         ${derived.outputSize.width} × ${derived.outputSize.height}px
+        ${statusText ? `<br />${escapeHtml(statusText)}` : ""}
       </div>
     `;
 
@@ -55,7 +62,7 @@ export const exportTool = {
       ? `${Math.round(session.exportOptions.quality * 100)}%`
       : "原始质量";
     fileNameInput.value = session.exportOptions.fileName;
-    downloadBtn.disabled = !session.source;
+    downloadBtn.disabled = !session.source || isExportBusy || isOutputBlocked;
 
     formatSelect.addEventListener("change", (event) => actions.setExportFormat(event.target.value));
     qualityRange.addEventListener("input", (event) => actions.setExportQuality(event.target.value));

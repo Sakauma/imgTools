@@ -1,3 +1,4 @@
+import { createCanvasLike } from "./canvas.js";
 import { clamp } from "./geometry.js";
 
 export const APPEARANCE_LIMITS = {
@@ -51,13 +52,6 @@ export function getAppearanceSummary(appearance = {}) {
   }
 
   return labels.length > 0 ? labels.join(" · ") : "默认";
-}
-
-function createCanvasLike(sourceCanvas) {
-  const canvas = document.createElement("canvas");
-  canvas.width = sourceCanvas.width;
-  canvas.height = sourceCanvas.height;
-  return canvas;
 }
 
 function traceRoundedRect(context, x, y, width, height, radius) {

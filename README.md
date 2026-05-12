@@ -31,11 +31,12 @@
 ## 开发检查
 
 - `npm run check`：检查所有 JavaScript 文件语法
+- `npm run lint`：检查文本文件结尾换行、缩进和尾随空白
 - `npm test`：运行纯函数测试
 - `npm run test:ui`：运行 Playwright 浏览器级回归测试
 - `npm run test:ui:update`：更新 Playwright 视觉基线截图
 - `npm run test:perf`：运行 24MP 桌面端性能 smoke 测试，覆盖调整、扩边和海报图层路径
-- `npm run test:all`：依次运行单元测试、UI 回归和性能 smoke
+- `npm run test:all`：依次运行语法检查、lint、单元测试、UI 回归和性能 smoke
 
 Playwright 的 UI 和性能测试需要本地可用的浏览器环境；仓库内已经自带稳定静态服务脚本用于本地和 CI 的测试启动。
 性能 smoke 只用于确认 24MP 场景能完成并输出耗时日志，具体毫秒数用于观察趋势，不作为 CI 阈值门禁。

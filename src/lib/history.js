@@ -1,3 +1,16 @@
+/**
+ * @typedef {{
+ *   activeTool: string,
+ *   pipeline: import("./types.js").Pipeline,
+ *   exportOptions: import("./types.js").ExportOptions,
+ * }} SessionSnapshot
+ *
+ * @typedef {{
+ *   undoStack: SessionSnapshot[],
+ *   redoStack: SessionSnapshot[],
+ * }} HistoryState
+ */
+
 export function createHistoryState() {
   return {
     undoStack: [],

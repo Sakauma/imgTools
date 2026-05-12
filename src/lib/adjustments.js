@@ -1,3 +1,4 @@
+import { createCanvasLike } from "./canvas.js";
 import { clamp } from "./geometry.js";
 
 export const ADJUSTMENT_LIMITS = {
@@ -245,13 +246,6 @@ export function applySharpenToPixels(sourcePixels, width, height, amount = 0) {
   }
 
   return output;
-}
-
-function createCanvasLike(sourceCanvas) {
-  const canvas = document.createElement("canvas");
-  canvas.width = sourceCanvas.width;
-  canvas.height = sourceCanvas.height;
-  return canvas;
 }
 
 function applyCanvasFilter(sourceCanvas, filterValue) {

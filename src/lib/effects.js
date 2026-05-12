@@ -1,3 +1,4 @@
+import { createCanvasLike } from "./canvas.js";
 import { clamp } from "./geometry.js";
 
 export const EFFECT_LIMITS = {
@@ -63,13 +64,6 @@ function nextNoise(seed) {
 
 function clampChannel(value) {
   return clamp(Math.round(value), 0, 255);
-}
-
-function createCanvasLike(sourceCanvas) {
-  const canvas = document.createElement("canvas");
-  canvas.width = sourceCanvas.width;
-  canvas.height = sourceCanvas.height;
-  return canvas;
 }
 
 export function applyPosterEffectsToCanvas(sourceCanvas, effects = {}) {

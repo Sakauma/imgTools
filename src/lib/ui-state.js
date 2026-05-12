@@ -16,6 +16,9 @@ export function createRuntimeState() {
     previewRenderId: 0,
     previewThrottleId: 0,
     lastPreviewAt: 0,
+    loadError: "",
+    exportStatus: "idle",
+    exportError: "",
   };
 }
 
@@ -33,4 +36,7 @@ export function resetRuntimeState(runtimeState) {
   runtimeState.previewRenderId = 0;
   runtimeState.previewThrottleId = 0;
   runtimeState.lastPreviewAt = 0;
+  runtimeState.loadError = "";
+  runtimeState.exportStatus = "idle";
+  runtimeState.exportError = "";
 }

@@ -1,7 +1,7 @@
 import { getExpandedSize } from "../lib/expand.js";
 import { getDisplayCropRect } from "../lib/geometry.js";
 import { getFormatConfig, getOutputSize } from "../lib/export.js";
-import { renderResultPreview, renderStageCanvas } from "../lib/pipeline.js";
+import { getOutputSafetyStatus, renderResultPreview, renderStageCanvas } from "../lib/pipeline.js";
 import { getCropBaseSize } from "../lib/session.js";
 import { getExportSummary, getTransformSummary } from "../lib/summary.js";
 import { toolMap, tools } from "../tools/index.js";
@@ -24,6 +24,9 @@ export function createRenderer({
         contentSize: { width: 0, height: 0 },
         outputSize: { width: 0, height: 0 },
         format: getFormatConfig(session.exportOptions.format),
+        outputSafety: getOutputSafetyStatus({ width: 0, height: 0 }),
+        exportStatus: runtimeState.exportStatus,
+        exportError: runtimeState.exportError,
       };
     }
 
@@ -35,6 +38,9 @@ export function createRenderer({
       contentSize,
       outputSize,
       format: getFormatConfig(session.exportOptions.format),
+      outputSafety: getOutputSafetyStatus(outputSize),
+      exportStatus: runtimeState.exportStatus,
+      exportError: runtimeState.exportError,
     };
   }
 
@@ -159,6 +165,8 @@ export function createRenderer({
   function renderStage() {
     if (!session.source) {
       elements.emptyState.hidden = false;
+      elements.emptyState.textContent = runtimeState.loadError ||
+        "选择图片或拖拽图片到这里，开始编辑。";
       elements.stageShell.hidden = true;
       elements.cropBox.hidden = true;
       runtimeState.stageMetrics = null;
@@ -177,6 +185,7 @@ export function createRenderer({
 
     runtimeState.stageMetrics = metrics;
     elements.emptyState.hidden = true;
+    elements.emptyState.textContent = "选择图片或拖拽图片到这里，开始编辑。";
     elements.stageShell.hidden = false;
     elements.stageShell.style.width = `${metrics.displayWidth}px`;
     elements.stageShell.style.height = `${metrics.displayHeight}px`;
@@ -205,9 +214,19 @@ export function createRenderer({
 
     const format = getFormatConfig(session.exportOptions.format);
     const contentSize = getOutputSize(preview.cropSize, session.pipeline.resize);
+    const safety = getOutputSafetyStatus(preview.outputSize);
     elements.resultCanvas.hidden = false;
     elements.resultEmptyState.hidden = true;
-    elements.exportMeta.textContent = getExportSummary(session, preview, format, contentSize);
+    if (runtimeState.exportStatus === "busy") {
+      elements.exportMeta.textContent = "正在准备导出...";
+    } else if (runtimeState.exportError) {
+      elements.exportMeta.textContent = runtimeState.exportError;
+    } else {
+      elements.exportMeta.textContent = [
+        getExportSummary(session, preview, format, contentSize),
+        safety.message,
+      ].filter(Boolean).join(" · ");
+    }
   }
 
   function renderChrome() {

@@ -29,48 +29,8 @@ jobs:
           node-version: "20"
           cache: npm
 
-      - name: Verify required files
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -f index.html
-          test -f styles.css
-          test -d styles
-          test -f package.json
-          test -f src/main.js
-          test -f README.md
-          test -f demo.svg
-          test -f playwright.config.js
-          test -f playwright.perf.config.js
-          test -f scripts/serve-static.mjs
-          test -f src/lib/layers.js
-          test -f src/lib/effects.js
-          test -f src/lib/presets.js
-          test -f tests/layers.test.js
-          test -f tests/effects.test.js
-          test -f tests/presets.test.js
-          test -f tests/ui/workbench.spec.js
-          test -f tests/ui/mobile.spec.js
-          test -f tests/ui/visual.spec.js
-          test -f tests/perf/workbench.perf.spec.js
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check JavaScript syntax
-        run: npm run check
-
-      - name: Run unit tests
-        run: npm test
-
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-
-      - name: Run UI functional tests
-        run: npm run test:ui:functional
-
-      - name: Run performance smoke tests
-        run: npm run test:perf
+      - name: Validate project
+        uses: ./.github/actions/validate
 
       - name: Prepare Pages artifact
         shell: bash

@@ -1,4 +1,9 @@
+import { createCanvas } from "./canvas.js";
 import { clamp, toPositiveInteger } from "./geometry.js";
+
+/** @typedef {import("./types.js").Layer} Layer */
+/** @typedef {import("./types.js").TextLayer} TextLayer */
+/** @typedef {import("./types.js").ShapeLayer} ShapeLayer */
 
 export const BLEND_MODES = ["normal", "multiply", "screen", "overlay", "hard-light", "difference"];
 
@@ -31,6 +36,7 @@ function normalizeBaseLayer(layer, index = 0) {
   };
 }
 
+/** @returns {TextLayer} */
 export function createTextLayer(overrides = {}) {
   return {
     id: `text-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -56,6 +62,7 @@ export function createTextLayer(overrides = {}) {
   };
 }
 
+/** @returns {ShapeLayer} */
 export function createShapeLayer(overrides = {}) {
   return {
     id: `shape-${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -77,6 +84,7 @@ export function createShapeLayer(overrides = {}) {
   };
 }
 
+/** @returns {Layer} */
 export function normalizeLayer(layer = {}, index = 0) {
   const base = normalizeBaseLayer(layer, index);
   if (base.type === "shape") {
@@ -180,9 +188,7 @@ export function renderLayersToCanvas(sourceCanvas, layers = []) {
     return sourceCanvas;
   }
 
-  const canvas = document.createElement("canvas");
-  canvas.width = sourceCanvas.width;
-  canvas.height = sourceCanvas.height;
+  const canvas = createCanvas(sourceCanvas.width, sourceCanvas.height);
   const context = canvas.getContext("2d");
   context.drawImage(sourceCanvas, 0, 0);
   normalized.forEach((layer) => {

@@ -1,3 +1,4 @@
+import { createCanvasLike } from "./canvas.js";
 import { toPositiveInteger } from "./geometry.js";
 
 export const EXPAND_ASPECT_OPTIONS = [
@@ -113,13 +114,6 @@ export function getExpandSummary(baseSize, expand = {}) {
   }
 
   return `扩边 ${getExpandModeLabel(baseSize, expand)}`;
-}
-
-function createCanvasLike(sourceCanvas, width, height) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width ?? sourceCanvas.width;
-  canvas.height = height ?? sourceCanvas.height;
-  return canvas;
 }
 
 export function applyExpandToCanvas(sourceCanvas, expand = {}, backgroundColor = null) {
