@@ -1,4 +1,4 @@
-import { createCanvasLike } from "./canvas.js";
+import { createCanvasLike, getCanvasContext } from "./canvas.js";
 import { toPositiveInteger } from "./geometry.js";
 
 export const EXPAND_ASPECT_OPTIONS = [
@@ -134,7 +134,7 @@ export function applyExpandToCanvas(sourceCanvas, expand = {}, backgroundColor =
   }
 
   const canvas = createCanvasLike(sourceCanvas, expandedSize.width, expandedSize.height);
-  const context = canvas.getContext("2d");
+  const context = getCanvasContext(canvas);
 
   if (fillColor) {
     context.fillStyle = fillColor;

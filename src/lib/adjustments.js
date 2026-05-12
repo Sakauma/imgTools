@@ -1,4 +1,4 @@
-import { createCanvasLike } from "./canvas.js";
+import { createCanvasLike, getCanvasContext } from "./canvas.js";
 import { clamp } from "./geometry.js";
 
 export const ADJUSTMENT_LIMITS = {
@@ -254,7 +254,7 @@ function applyCanvasFilter(sourceCanvas, filterValue) {
   }
 
   const canvas = createCanvasLike(sourceCanvas);
-  const context = canvas.getContext("2d");
+  const context = getCanvasContext(canvas);
   context.filter = filterValue;
   context.drawImage(sourceCanvas, 0, 0);
   context.filter = "none";
@@ -310,7 +310,7 @@ export function applyAdjustmentsToCanvas(sourceCanvas, adjustments = {}) {
 
   if (normalized.temperature !== 0 || normalized.tint !== 0) {
     const canvas = createCanvasLike(workingCanvas);
-    const context = canvas.getContext("2d");
+    const context = getCanvasContext(canvas);
     context.drawImage(workingCanvas, 0, 0);
     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const nextPixels = applyColorAdjustmentsToPixels(imageData.data, {
@@ -331,7 +331,7 @@ export function applyAdjustmentsToCanvas(sourceCanvas, adjustments = {}) {
     return workingCanvas;
   }
 
-  const sharpenContext = workingCanvas.getContext("2d");
+  const sharpenContext = getCanvasContext(workingCanvas);
   const imageData = sharpenContext.getImageData(0, 0, workingCanvas.width, workingCanvas.height);
   const nextPixels = applySharpenToPixels(
     imageData.data,

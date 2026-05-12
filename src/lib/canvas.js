@@ -48,6 +48,20 @@ export function createCanvasLike(sourceCanvas, width = sourceCanvas.width, heigh
 }
 
 /**
+ * Returns a 2D rendering context or fails with an actionable error.
+ *
+ * @param {CanvasLike} canvas
+ * @returns {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D}
+ */
+export function getCanvasContext(canvas) {
+  const context = canvas?.getContext?.("2d");
+  if (!context) {
+    throw new Error("2D canvas context is unavailable in this environment.");
+  }
+  return context;
+}
+
+/**
  * Runs a callback with a temporary canvas factory.
  *
  * @template T

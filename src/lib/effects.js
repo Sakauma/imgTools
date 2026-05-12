@@ -1,4 +1,4 @@
-import { createCanvasLike } from "./canvas.js";
+import { createCanvasLike, getCanvasContext } from "./canvas.js";
 import { clamp } from "./geometry.js";
 
 export const EFFECT_LIMITS = {
@@ -73,7 +73,7 @@ export function applyPosterEffectsToCanvas(sourceCanvas, effects = {}) {
   }
 
   const canvas = createCanvasLike(sourceCanvas);
-  const context = canvas.getContext("2d");
+  const context = getCanvasContext(canvas);
   context.drawImage(sourceCanvas, 0, 0);
   const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;

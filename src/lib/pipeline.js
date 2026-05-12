@@ -1,6 +1,6 @@
 import { applyAppearanceToCanvas } from "./appearance.js";
 import { applyAdjustmentsToCanvas } from "./adjustments.js";
-import { createCanvas } from "./canvas.js";
+import { createCanvas, getCanvasContext } from "./canvas.js";
 import { applyPosterEffectsToCanvas } from "./effects.js";
 import { applyExpandToCanvas, getExpandedSize } from "./expand.js";
 import { fitInsideBox, getDisplayCropRect, getOrientedSize, getPixelCropRect } from "./geometry.js";
@@ -74,7 +74,7 @@ function renderPipelineFromCrop(session, cropRect, contentSize, pipeline = sessi
   }
 
   const outputCanvas = createCanvas(contentSize.width, contentSize.height);
-  const context = outputCanvas.getContext("2d");
+  const context = getCanvasContext(outputCanvas);
 
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
@@ -118,7 +118,7 @@ export function getOrientedCanvas(session) {
     session.pipeline.orientation.rotateQuarterTurns
   );
   const canvas = createCanvas(orientedSize.width, orientedSize.height);
-  const context = canvas.getContext("2d");
+  const context = getCanvasContext(canvas);
 
   context.save();
   context.translate(canvas.width / 2, canvas.height / 2);
@@ -150,7 +150,7 @@ export function renderStageCanvas(session, canvas, viewportWidth, viewportHeight
     canvas.style.width = `${preview.previewSize.width}px`;
     canvas.style.height = `${preview.previewSize.height}px`;
 
-    const context = canvas.getContext("2d");
+    const context = getCanvasContext(canvas);
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.imageSmoothingEnabled = true;
     context.imageSmoothingQuality = "high";
@@ -180,7 +180,7 @@ export function renderStageCanvas(session, canvas, viewportWidth, viewportHeight
   canvas.style.width = `${displaySize.width}px`;
   canvas.style.height = `${displaySize.height}px`;
 
-  const context = canvas.getContext("2d");
+  const context = getCanvasContext(canvas);
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";
@@ -311,7 +311,7 @@ export function renderResultPreview(session, canvas, maxPreviewSize = 420) {
   canvas.height = output.previewSize.height;
   canvas.hidden = false;
 
-  const context = canvas.getContext("2d");
+  const context = getCanvasContext(canvas);
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = "high";

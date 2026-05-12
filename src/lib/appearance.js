@@ -1,4 +1,4 @@
-import { createCanvasLike } from "./canvas.js";
+import { createCanvasLike, getCanvasContext } from "./canvas.js";
 import { clamp } from "./geometry.js";
 
 export const APPEARANCE_LIMITS = {
@@ -82,7 +82,7 @@ export function applyAppearanceToCanvas(sourceCanvas, appearance = {}) {
   }
 
   const canvas = createCanvasLike(sourceCanvas);
-  const context = canvas.getContext("2d");
+  const context = getCanvasContext(canvas);
   const radius = clamp(normalized.cornerRadius, 0, Math.min(canvas.width, canvas.height) / 2);
   const borderWidth = clamp(normalized.borderWidth, 0, Math.min(canvas.width, canvas.height) / 2);
 

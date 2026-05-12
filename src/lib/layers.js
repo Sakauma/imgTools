@@ -1,4 +1,4 @@
-import { createCanvas } from "./canvas.js";
+import { createCanvas, getCanvasContext } from "./canvas.js";
 import { clamp, toPositiveInteger } from "./geometry.js";
 
 /** @typedef {import("./types.js").Layer} Layer */
@@ -239,7 +239,7 @@ function drawShapeLayer(context, canvas, layer) {
 
 function drawPaintLayer(context, canvas, layer) {
   const paintCanvas = createCanvas(canvas.width, canvas.height);
-  const paintContext = paintCanvas.getContext("2d");
+  const paintContext = getCanvasContext(paintCanvas);
   paintContext.lineCap = "round";
   paintContext.lineJoin = "round";
 
@@ -285,7 +285,7 @@ export function renderLayersToCanvas(sourceCanvas, layers = []) {
   }
 
   const canvas = createCanvas(sourceCanvas.width, sourceCanvas.height);
-  const context = canvas.getContext("2d");
+  const context = getCanvasContext(canvas);
   context.drawImage(sourceCanvas, 0, 0);
   normalized.forEach((layer) => {
     if (layer.type === "shape") {
