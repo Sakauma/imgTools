@@ -2,7 +2,10 @@
   display: flex;
   overflow-x: auto;
   gap: 6px;
-  padding-bottom: 2px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.42);
   scrollbar-width: thin;
 }
 
@@ -21,6 +24,8 @@
 .tool-tab {
   flex: 0 0 auto;
   min-width: 92px;
+  min-height: 36px;
+  border-radius: 8px;
 }
 
 .tool-tab,
@@ -38,7 +43,7 @@
 .action-button.is-accent {
   border-color: var(--focus);
   background: var(--accent);
-  color: #fbfaff;
+  color: #ffffff;
 }
 
 .subtool-tab {
@@ -87,7 +92,7 @@
 .tool-card {
   padding: 10px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--panel-soft);
 }
 
@@ -107,11 +112,11 @@ textarea {
   min-height: 86px;
   resize: vertical;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   padding: 10px 12px;
   font: inherit;
   color: var(--ink);
-  background: #fbfaff;
+  background: rgba(255, 255, 255, 0.84);
 }
 
 .layer-list,
@@ -133,6 +138,7 @@ textarea {
   min-height: auto;
   text-align: left;
   background: var(--panel-soft);
+  border-radius: 8px;
 }
 
 .layer-row.is-active {

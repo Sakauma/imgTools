@@ -45,11 +45,11 @@ button {
   width: 100%;
   min-height: 42px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 10px 12px;
   font: inherit;
   color: var(--ink);
-  background: #fbfaff;
+  background: rgba(255, 255, 255, 0.84);
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease,
@@ -99,7 +99,7 @@ input::file-selector-button {
   padding: 8px 12px;
   font: inherit;
   font-weight: 700;
-  color: #fbfaff;
+  color: #ffffff;
   background: var(--accent);
 }
 
@@ -117,7 +117,7 @@ input::file-selector-button {
   min-height: 44px;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--panel-soft);
 }
 
