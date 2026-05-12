@@ -1,3 +1,7 @@
+/** @typedef {import("./types.js").RuntimeState} RuntimeState */
+/** @typedef {import("./types.js").ViewState} ViewState */
+
+/** @returns {ViewState} */
 export function createViewState() {
   return {
     activeTool: "crop",
@@ -12,6 +16,7 @@ export function createViewState() {
   };
 }
 
+/** @returns {RuntimeState} */
 export function createRuntimeState() {
   return {
     dropDepth: 0,
@@ -28,6 +33,7 @@ export function createRuntimeState() {
   };
 }
 
+/** @param {ViewState} viewState */
 export function resetViewStateForSource(viewState) {
   viewState.activeTool = "crop";
   viewState.adjustmentSection = "basic";
@@ -38,6 +44,7 @@ export function resetViewStateForSource(viewState) {
   viewState.brush.mode = "paint";
 }
 
+/** @param {RuntimeState} runtimeState */
 export function resetRuntimeState(runtimeState) {
   runtimeState.dropDepth = 0;
   runtimeState.drag = null;

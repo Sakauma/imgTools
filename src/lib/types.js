@@ -59,7 +59,7 @@
  *
  * @typedef {{
  *   id: string,
- *   type: "text" | "shape",
+ *   type: "text" | "shape" | "paint",
  *   x: number,
  *   y: number,
  *   width: number,
@@ -151,6 +151,47 @@
  *   history: import("./history.js").HistoryState,
  *   cache: PipelineCache,
  * }} EditorSession
+ *
+ * @typedef {"paint" | "erase"} BrushMode
+ *
+ * @typedef {{
+ *   color: string,
+ *   size: number,
+ *   opacity: number,
+ *   mode: BrushMode,
+ * }} BrushState
+ *
+ * @typedef {{
+ *   activeTool: string,
+ *   adjustmentSection: string,
+ *   selectedLayerId: string | null,
+ *   brush: BrushState,
+ * }} ViewState
+ *
+ * @typedef {{ type: "move", offsetX: number, offsetY: number, origin: Rect }} CropMoveDrag
+ * @typedef {{ type: "resize", handle: string, origin: Rect }} CropResizeDrag
+ * @typedef {{ type: "paint", layerId: string, strokeIndex: number }} PaintDrag
+ * @typedef {CropMoveDrag | CropResizeDrag | PaintDrag} DragState
+ *
+ * @typedef {{
+ *   displayWidth: number,
+ *   displayHeight: number,
+ *   cropDisplayRect: Rect | null,
+ * }} StageMetrics
+ *
+ * @typedef {{
+ *   dropDepth: number,
+ *   drag: DragState | null,
+ *   pendingHistorySnapshot: import("./history.js").SessionSnapshot | null,
+ *   activeLoadToken: number,
+ *   stageMetrics: StageMetrics | null,
+ *   previewRenderId: number,
+ *   previewThrottleId: number,
+ *   lastPreviewAt: number,
+ *   loadError: string,
+ *   exportStatus: "idle" | "busy" | "error",
+ *   exportError: string,
+ * }} RuntimeState
  */
 
 export {};
