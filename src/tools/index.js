@@ -6,6 +6,7 @@ import { effectsTool } from "./effects.js";
 import { resizeTool } from "./resize.js";
 import { rotateTool } from "./rotate.js";
 import { exportTool } from "./export.js";
+import { layersTool } from "./layers.js";
 import { presetsTool } from "./presets.js";
 import { shapesTool } from "./shapes.js";
 import { textTool } from "./text.js";
@@ -19,6 +20,7 @@ export const tools = [
   brushTool,
   textTool,
   shapesTool,
+  layersTool,
   appearanceTool,
   presetsTool,
   exportTool,

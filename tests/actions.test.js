@@ -98,6 +98,26 @@ test("brush actions add and edit paint layers through history", () => {
   assert.equal(session.history.undoStack.length, 2);
 });
 
+test("layer actions duplicate and toggle generic layers", () => {
+  const { actions, session, viewState } = createActionHarness();
+
+  actions.addTextLayer();
+  const original = session.pipeline.layers.find((item) => item.type === "text");
+  actions.duplicateLayer(original.id);
+  const duplicated = session.pipeline.layers.find(
+    (item) => item.type === "text" && item.id !== original.id
+  );
+
+  assert.ok(duplicated);
+  assert.equal(viewState.selectedLayerId, duplicated.id);
+  assert.equal(duplicated.text, original.text);
+  assert.notEqual(duplicated.x, original.x);
+
+  actions.toggleLayerVisible(duplicated.id);
+  const hiddenLayer = session.pipeline.layers.find((item) => item.id === duplicated.id);
+  assert.equal(hiddenLayer.visible, false);
+});
+
 test("bound undo and redo restore tracked action snapshots", () => {
   const session = createEditorSession();
   const viewState = createViewState();

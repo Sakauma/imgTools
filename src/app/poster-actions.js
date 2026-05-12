@@ -34,6 +34,22 @@ export function createPosterActions({ session, viewState, renderAll, applyTracke
         if (layer) layer.zIndex += direction === "up" ? 1.5 : -1.5;
       });
     },
+    duplicateLayer(layerId) {
+      applyTrackedChange(() => {
+        const layer = session.pipeline.layers.find((item) => item.id === layerId);
+        if (!layer) return;
+
+        const copy = structuredClone(layer);
+        copy.id = `${layer.type}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        copy.zIndex = session.pipeline.layers.length + 10;
+        if (copy.type !== "paint") {
+          copy.x = Math.min(100, copy.x + 4);
+          copy.y = Math.min(100, copy.y + 4);
+        }
+        session.pipeline.layers.push(copy);
+        viewState.selectedLayerId = copy.id;
+      });
+    },
     toggleLayerVisible(layerId) {
       applyTrackedChange(() => {
         const layer = session.pipeline.layers.find((item) => item.id === layerId);
