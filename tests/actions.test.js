@@ -118,6 +118,26 @@ test("layer actions duplicate and toggle generic layers", () => {
   assert.equal(hiddenLayer.visible, false);
 });
 
+test("session actions reset pipeline and clear transient edit state", () => {
+  const { actions, runtimeState, session, viewState } = createActionHarness();
+
+  actions.setAdjustmentValue("brightness", 35);
+  viewState.activeTool = "brush";
+  runtimeState.drag = { type: "paint" };
+  runtimeState.pendingHistorySnapshot = { session: {}, viewState: {} };
+  runtimeState.exportStatus = "error";
+  runtimeState.exportError = "stale";
+
+  actions.resetSession();
+
+  assert.equal(session.pipeline.adjustments.brightness, 0);
+  assert.equal(viewState.activeTool, "crop");
+  assert.equal(runtimeState.drag, null);
+  assert.equal(runtimeState.pendingHistorySnapshot, null);
+  assert.equal(runtimeState.exportStatus, "idle");
+  assert.equal(runtimeState.exportError, "");
+});
+
 test("bound undo and redo restore tracked action snapshots", () => {
   const session = createEditorSession();
   const viewState = createViewState();
