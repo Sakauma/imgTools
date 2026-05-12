@@ -4,7 +4,7 @@ import { getFormatConfig, getOutputSize } from "../lib/export.js";
 import { getOutputSafetyStatus, renderResultPreview, renderStageCanvas } from "../lib/pipeline.js";
 import { getCropBaseSize } from "../lib/session.js";
 import { getExportSummary, getTransformSummary } from "../lib/summary.js";
-import { toolMap, tools } from "../tools/index.js";
+import { toolGroups, toolMap, tools } from "../tools/index.js";
 
 const RESULT_PREVIEW_MAX_SIZE = 420;
 const DRAG_PREVIEW_INTERVAL = 90;
@@ -93,14 +93,22 @@ export function createRenderer({
   }
 
   function renderToolTabs() {
-    elements.toolTabs.innerHTML = tools
-      .map(
-        (tool) => `
-          <button class="tool-tab${viewState.activeTool === tool.id ? " is-active" : ""}" type="button" data-tool-id="${tool.id}" aria-pressed="${viewState.activeTool === tool.id}">
-            ${tool.label}
-          </button>
-        `
-      )
+    elements.toolTabs.innerHTML = toolGroups
+      .map((group) => `
+        <section class="tool-group" aria-label="${group.label}">
+          <span class="tool-group-label">${group.label}</span>
+          <div class="tool-group-items">
+            ${group.tools.map(
+              (tool) => `
+                <button class="tool-tab${viewState.activeTool === tool.id ? " is-active" : ""}" type="button" data-tool-id="${tool.id}" aria-pressed="${viewState.activeTool === tool.id}" title="${tool.hint}">
+                  <span class="tool-icon" aria-hidden="true">${tool.icon ?? ""}</span>
+                  <span>${tool.label}</span>
+                </button>
+              `
+            ).join("")}
+          </div>
+        </section>
+      `)
       .join("");
 
     elements.toolTabs.querySelectorAll("[data-tool-id]").forEach((button) => {
@@ -118,8 +126,9 @@ export function createRenderer({
 
   function renderWorkspaceHeader() {
     const tool = toolMap.get(viewState.activeTool) ?? tools[0];
-    elements.activeToolLabel.textContent = tool.label;
+    elements.activeToolLabel.textContent = `${tool.icon ? `${tool.icon} ` : ""}${tool.label}`;
     elements.toolHint.textContent = tool.hint;
+    elements.viewport.dataset.tool = tool.id;
   }
 
   function renderHistoryButtons() {

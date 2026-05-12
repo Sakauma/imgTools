@@ -119,6 +119,14 @@
   box-shadow: inset 0 0 0 4px var(--focus-soft);
 }
 
+.viewport[data-tool="brush"] #stageCanvas {
+  cursor: crosshair;
+}
+
+.viewport[data-tool="crop"] #stageCanvas {
+  cursor: default;
+}
+
 .empty-state {
   max-width: 460px;
   padding: 26px 22px;

@@ -50,6 +50,11 @@
   min-width: 0;
 }
 
+.source-stack {
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+}
+
 .workbench {
   display: contents;
 }
@@ -152,6 +157,10 @@
   .tool-panel {
     overflow: visible;
     padding-right: 0;
+  }
+
+  .source-stack {
+    grid-template-columns: 1fr;
   }
 
   .result-panel {
