@@ -7,6 +7,10 @@ import {
 } from "../lib/session.js";
 import { resetViewStateForSource } from "../lib/ui-state.js";
 
+/** @typedef {import("../lib/types.js").EditorSession} EditorSession */
+/** @typedef {import("../lib/types.js").RuntimeState} RuntimeState */
+/** @typedef {import("../lib/types.js").ViewState} ViewState */
+
 function clearRuntimeEditState(runtimeState) {
   runtimeState.drag = null;
   runtimeState.pendingHistorySnapshot = null;
@@ -14,10 +18,31 @@ function clearRuntimeEditState(runtimeState) {
   runtimeState.exportError = "";
 }
 
-export function createSessionActions({ session, viewState, runtimeState, renderAll }) {
+export function createEditorStore({ session, viewState, runtimeState, renderAll }) {
+  function render(options = {}) {
+    renderAll(options);
+  }
+
+  function applyTrackedChange(mutator, { forceResizeTargets = false, previewMode = "immediate" } = {}) {
+    if (!session.source) {
+      return false;
+    }
+
+    const before = createSnapshot(session, viewState);
+    runtimeState.exportStatus = "idle";
+    runtimeState.exportError = "";
+    mutator({ session, viewState, runtimeState });
+    syncSessionDerivedState(session, { forceResizeTargets });
+    const after = createSnapshot(session, viewState);
+    invalidateCachesForSnapshotChange(session, before, after);
+    commitSnapshot(session, before, after);
+    render({ previewMode });
+    return true;
+  }
+
   function resetSession() {
     if (!session.source) {
-      return;
+      return false;
     }
 
     const before = createSnapshot(session, viewState);
@@ -29,44 +54,52 @@ export function createSessionActions({ session, viewState, runtimeState, renderA
     const after = createSnapshot(session, viewState);
     invalidateCachesForSnapshotChange(session, before, after);
     commitSnapshot(session, before, after);
-    renderAll();
+    render();
+    return true;
   }
 
   function undoEdit() {
     const before = createSnapshot(session, viewState);
     if (!undo(session, viewState)) {
-      return;
+      return false;
     }
 
     syncSessionDerivedState(session);
     clearRuntimeEditState(runtimeState);
     const after = createSnapshot(session, viewState);
     invalidateCachesForSnapshotChange(session, before, after);
-    renderAll();
+    render();
+    return true;
   }
 
   function redoEdit() {
     const before = createSnapshot(session, viewState);
     if (!redo(session, viewState)) {
-      return;
+      return false;
     }
 
     syncSessionDerivedState(session);
     clearRuntimeEditState(runtimeState);
     const after = createSnapshot(session, viewState);
     invalidateCachesForSnapshotChange(session, before, after);
-    renderAll();
+    render();
+    return true;
   }
 
   return {
+    session,
+    viewState,
+    runtimeState,
+    applyTrackedChange,
     redoEdit,
+    render,
     resetSession,
     undoEdit,
   };
 }
 
-export function bindSessionButtons(elements, sessionActions) {
-  elements.resetSessionBtn.addEventListener("click", sessionActions.resetSession);
-  elements.undoBtn.addEventListener("click", sessionActions.undoEdit);
-  elements.redoBtn.addEventListener("click", sessionActions.redoEdit);
+export function bindStoreSessionButtons(elements, store) {
+  elements.resetSessionBtn.addEventListener("click", store.resetSession);
+  elements.undoBtn.addEventListener("click", store.undoEdit);
+  elements.redoBtn.addEventListener("click", store.redoEdit);
 }

@@ -1,5 +1,6 @@
 import { createActions } from "./app/actions.js";
 import { collectElements } from "./app/dom.js";
+import { createEditorStore } from "./app/editor-store.js";
 import { createImageIO } from "./app/io.js";
 import { setupInteractions } from "./app/interactions.js";
 import { createRenderer } from "./app/render.js";
@@ -22,6 +23,12 @@ export function createApp(doc = document) {
     getActions: () => toolActions,
     window: viewWindow,
   });
+  const store = createEditorStore({
+    session,
+    viewState,
+    runtimeState,
+    renderAll: renderer.renderAll,
+  });
   const io = createImageIO({
     session,
     viewState,
@@ -32,11 +39,8 @@ export function createApp(doc = document) {
     window: viewWindow,
   });
   const { actions, bindSessionButtons } = createActions({
-    session,
-    viewState,
-    runtimeState,
+    store,
     elements,
-    renderAll: renderer.renderAll,
     downloadCurrentResult: io.downloadCurrentResult,
   });
 

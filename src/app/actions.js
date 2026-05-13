@@ -1,8 +1,3 @@
-import { commitSnapshot, createSnapshot } from "../lib/history.js";
-import {
-  invalidateCachesForSnapshotChange,
-  syncSessionDerivedState,
-} from "../lib/session.js";
 import { createAdjustmentActions } from "./adjustment-actions.js";
 import { createAppearanceActions } from "./appearance-actions.js";
 import { createBrushActions } from "./brush-actions.js";
@@ -11,49 +6,41 @@ import { createExportActions } from "./export-actions.js";
 import { createOrientationActions } from "./orientation-actions.js";
 import { createPosterActions } from "./poster-actions.js";
 import { createResizeActions } from "./resize-actions.js";
-import { bindSessionButtons, createSessionActions } from "./session-actions.js";
+import { bindStoreSessionButtons } from "./editor-store.js";
 
 export function createActions({
-  session,
-  viewState,
-  runtimeState,
+  store,
   elements,
-  renderAll,
   downloadCurrentResult,
 }) {
-  function applyTrackedChange(mutator, { forceResizeTargets = false, previewMode = "immediate" } = {}) {
-    if (!session.source) {
-      return;
-    }
-
-    const before = createSnapshot(session, viewState);
-    runtimeState.exportStatus = "idle";
-    runtimeState.exportError = "";
-    mutator();
-    syncSessionDerivedState(session, { forceResizeTargets });
-    const after = createSnapshot(session, viewState);
-    invalidateCachesForSnapshotChange(session, before, after);
-    commitSnapshot(session, before, after);
-    renderAll({ previewMode });
-  }
+  const { session, viewState } = store;
 
   const actions = {
-    ...createCropActions({ session, applyTrackedChange }),
-    ...createResizeActions({ session, applyTrackedChange }),
-    ...createOrientationActions({ session, applyTrackedChange }),
-    ...createExportActions({ session, applyTrackedChange, downloadCurrentResult }),
-    ...createAdjustmentActions({ session, applyTrackedChange }),
-    ...createAppearanceActions({ session, applyTrackedChange }),
-    ...createBrushActions({ session, viewState, renderAll, applyTrackedChange }),
-    ...createPosterActions({ session, viewState, renderAll, applyTrackedChange }),
+    ...createCropActions({ session, applyTrackedChange: store.applyTrackedChange }),
+    ...createResizeActions({ session, applyTrackedChange: store.applyTrackedChange }),
+    ...createOrientationActions({ session, applyTrackedChange: store.applyTrackedChange }),
+    ...createExportActions({ session, applyTrackedChange: store.applyTrackedChange, downloadCurrentResult }),
+    ...createAdjustmentActions({ session, applyTrackedChange: store.applyTrackedChange }),
+    ...createAppearanceActions({ session, applyTrackedChange: store.applyTrackedChange }),
+    ...createBrushActions({
+      session,
+      viewState,
+      renderAll: store.render,
+      applyTrackedChange: store.applyTrackedChange,
+    }),
+    ...createPosterActions({
+      session,
+      viewState,
+      renderAll: store.render,
+      applyTrackedChange: store.applyTrackedChange,
+    }),
+    redoEdit: store.redoEdit,
+    resetSession: store.resetSession,
+    undoEdit: store.undoEdit,
   };
-  const sessionActions = createSessionActions({ session, viewState, runtimeState, renderAll });
 
   return {
-    actions: {
-      ...actions,
-      ...sessionActions,
-    },
-    bindSessionButtons: () => bindSessionButtons(elements, sessionActions),
+    actions,
+    bindSessionButtons: () => bindStoreSessionButtons(elements, store),
   };
 }

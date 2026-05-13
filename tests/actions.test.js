@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createActions } from "../src/app/actions.js";
+import { createEditorStore } from "../src/app/editor-store.js";
 import { createEditorSession, resetSessionForSource } from "../src/lib/session.js";
 import { createRuntimeState, createViewState } from "../src/lib/ui-state.js";
 
@@ -18,14 +19,18 @@ function createActionHarness() {
     height: 900,
   });
 
-  const { actions } = createActions({
+  const store = createEditorStore({
     session,
     viewState,
     runtimeState,
-    elements: {},
     renderAll(options = {}) {
       renderCalls.push(options);
     },
+  });
+
+  const { actions } = createActions({
+    store,
+    elements: {},
     downloadCurrentResult() {},
   });
 
@@ -154,14 +159,18 @@ test("bound undo and redo restore tracked action snapshots", () => {
     height: 900,
   });
 
-  const { actions, bindSessionButtons } = createActions({
+  const store = createEditorStore({
     session,
     viewState,
     runtimeState,
-    elements: { resetSessionBtn, undoBtn, redoBtn },
     renderAll() {
       renderCount += 1;
     },
+  });
+
+  const { actions, bindSessionButtons } = createActions({
+    store,
+    elements: { resetSessionBtn, undoBtn, redoBtn },
     downloadCurrentResult() {},
   });
   bindSessionButtons();
