@@ -1,9 +1,12 @@
+/** @typedef {import("../lib/types.js").PaintLayer} PaintLayer */
+
 import { BLEND_MODES } from "../lib/layers.js";
 import { getLayersByType, getSelectedLayer, syncSelectedLayer } from "../lib/layer-selection.js";
 import { bindClick, bindInput, bindRange, bindSelect } from "./bindings.js";
 
+/** @returns {PaintLayer[]} */
 function paintLayers(session) {
-  return getLayersByType(session.pipeline.layers, "paint");
+  return /** @type {PaintLayer[]} */ (getLayersByType(session.pipeline.layers, "paint"));
 }
 
 function option(value, label, selected) {
@@ -16,6 +19,7 @@ export const brushTool = {
   hint: "在输出预览上自由绘制，切换橡皮可擦除当前绘画层的笔触。",
   render(root, session, viewState, actions) {
     const layers = paintLayers(session);
+    /** @type {PaintLayer | null} */
     const layer = syncSelectedLayer(
       viewState,
       getSelectedLayer(layers, viewState.selectedLayerId, { fallback: "first" })

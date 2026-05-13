@@ -244,6 +244,10 @@ export function buildOutputCanvas(session) {
   };
 }
 
+/**
+ * @param {import("./types.js").EditorSession} session
+ * @param {number | import("./types.js").Size} [maxPreviewSize]
+ */
 export function buildPreviewCanvas(session, maxPreviewSize = 420) {
   const orientedCanvas = getOrientedCanvas(session);
   if (!orientedCanvas) {
@@ -281,6 +285,11 @@ export function buildPreviewCanvas(session, maxPreviewSize = 420) {
   };
 }
 
+/**
+ * @param {import("./types.js").EditorSession} session
+ * @param {HTMLCanvasElement} canvas
+ * @param {number | import("./types.js").Size} [maxPreviewSize]
+ */
 export function renderResultPreview(session, canvas, maxPreviewSize = 420) {
   const output = buildPreviewCanvas(session, maxPreviewSize);
   if (!output) {

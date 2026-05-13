@@ -1,10 +1,13 @@
+/** @typedef {import("../lib/types.js").TextLayer} TextLayer */
+
 import { BLEND_MODES } from "../lib/layers.js";
 import { getLayersByType, getSelectedLayer, syncSelectedLayer } from "../lib/layer-selection.js";
 import { escapeAttribute, escapeHtml } from "../lib/html.js";
 import { bindCheckbox, bindClick, bindInput, bindRange, bindSelect } from "./bindings.js";
 
+/** @returns {TextLayer[]} */
 function textLayers(session) {
-  return getLayersByType(session.pipeline.layers, "text");
+  return /** @type {TextLayer[]} */ (getLayersByType(session.pipeline.layers, "text"));
 }
 
 function option(value, label, selected) {
@@ -17,6 +20,7 @@ export const textTool = {
   hint: "添加可旋转的文字层，用于海报标题、竖向大字和底部符号排版。",
   render(root, session, viewState, actions) {
     const layers = textLayers(session);
+    /** @type {TextLayer | null} */
     const layer = syncSelectedLayer(
       viewState,
       getSelectedLayer(layers, viewState.selectedLayerId, { fallback: "first" })

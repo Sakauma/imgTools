@@ -1,10 +1,13 @@
+/** @typedef {import("../lib/types.js").ShapeLayer} ShapeLayer */
+
 import { BLEND_MODES } from "../lib/layers.js";
 import { getLayersByType, getSelectedLayer, syncSelectedLayer } from "../lib/layer-selection.js";
 import { escapeAttribute } from "../lib/html.js";
 import { bindClick, bindInput, bindRange, bindSelect } from "./bindings.js";
 
+/** @returns {ShapeLayer[]} */
 function shapeLayers(session) {
-  return getLayersByType(session.pipeline.layers, "shape");
+  return /** @type {ShapeLayer[]} */ (getLayersByType(session.pipeline.layers, "shape"));
 }
 
 export const shapesTool = {
@@ -13,6 +16,7 @@ export const shapesTool = {
   hint: "添加可旋转的矩形色块，用于红黑贴纸、蓝色色块和局部视觉标记。",
   render(root, session, viewState, actions) {
     const layers = shapeLayers(session);
+    /** @type {ShapeLayer | null} */
     const layer = syncSelectedLayer(
       viewState,
       getSelectedLayer(layers, viewState.selectedLayerId, { fallback: "first" })

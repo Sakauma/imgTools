@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/check-syntax.mjs",
+    "check": "npm run check:syntax && npm run check:types",
+    "check:syntax": "node scripts/check-syntax.mjs",
+    "check:types": "tsc -p tsconfig.json",
     "lint": "node scripts/lint.mjs",
     "serve:test": "node scripts/serve-static.mjs --port 4173",
     "test": "node --test",
@@ -15,6 +17,7 @@
     "test:all": "npm run check && npm run lint && npm test && npm run test:ui:functional && npm run test:perf"
   },
   "devDependencies": {
-    "@playwright/test": "^1.54.0"
+    "@playwright/test": "^1.54.0",
+    "typescript": "^6.0.3"
   }
 }
