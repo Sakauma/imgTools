@@ -3,6 +3,7 @@ import { collectElements } from "./app/dom.js";
 import { createEditorStore } from "./app/editor-store.js";
 import { createImageIO } from "./app/io.js";
 import { setupInteractions } from "./app/interactions.js";
+import { createPipelineWorkerClient } from "./app/pipeline-worker-client.js";
 import { createRenderer } from "./app/render.js";
 import { createEditorSession } from "./lib/session.js";
 import { createRuntimeState, createViewState } from "./lib/ui-state.js";
@@ -29,11 +30,13 @@ export function createApp(doc = document) {
     runtimeState,
     renderAll: renderer.renderAll,
   });
+  const pipelineWorker = createPipelineWorkerClient({ scope: viewWindow });
   const io = createImageIO({
     session,
     viewState,
     runtimeState,
     elements,
+    pipelineWorker,
     renderAll: renderer.renderAll,
     doc,
     window: viewWindow,

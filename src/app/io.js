@@ -13,11 +13,16 @@ function getErrorMessage(error, fallback) {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+function resolveSourceUrl(source, doc) {
+  return new URL(source, doc.baseURI).href;
+}
+
 export function createImageIO({
   session,
   viewState,
   runtimeState,
   elements,
+  pipelineWorker = null,
   renderAll,
   doc = document,
   window = globalThis.window,
@@ -36,6 +41,7 @@ export function createImageIO({
 
   function loadImageSource(source, fileName) {
     const loadToken = createLoadToken();
+    const sourceUrl = resolveSourceUrl(source, doc);
     const image = new Image();
     runtimeState.loadError = "";
     image.decoding = "async";
@@ -52,6 +58,12 @@ export function createImageIO({
       });
       resetViewStateForSource(viewState);
       resetRuntimeState(runtimeState);
+      pipelineWorker?.setSource(sourceUrl, {
+        name: session.source.name,
+        width: session.source.width,
+        height: session.source.height,
+        token: session.source.token,
+      })?.catch(() => {});
       renderAll();
     };
     image.onerror = () => {
@@ -62,6 +74,7 @@ export function createImageIO({
       session.source = null;
       resetRuntimeState(runtimeState);
       runtimeState.loadError = "图片加载失败。请尝试其他图片文件。";
+      pipelineWorker?.clearSource()?.catch(() => {});
       renderAll();
     };
     image.src = source;
@@ -90,6 +103,7 @@ export function createImageIO({
       session.source = null;
       resetRuntimeState(runtimeState);
       runtimeState.loadError = "文件读取失败。请重新选择图片。";
+      pipelineWorker?.clearSource()?.catch(() => {});
       renderAll();
     };
     reader.readAsDataURL(file);
@@ -105,11 +119,6 @@ export function createImageIO({
     renderAll();
 
     try {
-      const result = buildOutputCanvas(session);
-      if (!result) {
-        throw new Error("当前没有可导出的结果。");
-      }
-
       const quality = isQualityAdjustable(session.exportOptions.format)
         ? session.exportOptions.quality
         : undefined;
@@ -117,7 +126,22 @@ export function createImageIO({
         session.exportOptions.fileName || session.source.name,
         session.exportOptions.format
       );
-      const blob = await canvasToBlob(result.canvas, session.exportOptions.format, quality);
+      const workerResult = pipelineWorker
+        ? await pipelineWorker.renderBlob({
+            pipeline: session.pipeline,
+            exportOptions: session.exportOptions,
+          }).catch(() => null)
+        : null;
+      let blob = workerResult?.blob ?? null;
+      let result = null;
+
+      if (!blob) {
+        result = buildOutputCanvas(session);
+        if (!result) {
+          throw new Error("当前没有可导出的结果。");
+        }
+        blob = await canvasToBlob(result.canvas, session.exportOptions.format, quality);
+      }
 
       if (blob) {
         const objectUrl = window.URL.createObjectURL(blob);
@@ -128,6 +152,9 @@ export function createImageIO({
         return;
       }
 
+      if (!result) {
+        result = buildOutputCanvas(session);
+      }
       triggerDownload(result.canvas.toDataURL(session.exportOptions.format, quality), fileName);
     } catch (error) {
       runtimeState.exportStatus = "error";
